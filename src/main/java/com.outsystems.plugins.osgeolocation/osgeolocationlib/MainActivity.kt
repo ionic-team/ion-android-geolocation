@@ -1,4 +1,4 @@
-package organizationidplaceholder.libtemplateplaceholder
+package com.outsystems.plugins.osgeolocation.osgeolocationlib
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle

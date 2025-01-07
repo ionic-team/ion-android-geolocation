@@ -1,6 +1,6 @@
-# LibTemplatePlaceholder
+# OSGeolocationLib
 
-Welcome to **LibTemplatePlaceholder**. This repository serves as a template to create repositories used to build Android libraries. This file will guide you through that process, that is defined by two sequential steps:
+Welcome to **OSGeolocationLib**. This repository serves as a template to create repositories used to build Android libraries. This file will guide you through that process, that is defined by two sequential steps:
 
 1. Use the current repository as the template for the new one.
 2. Clone the new repository on our machine.

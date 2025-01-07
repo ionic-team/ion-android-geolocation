@@ -1,4 +1,4 @@
-package organizationidplaceholder.libtemplateplaceholder
+package com.outsystems.plugins.osgeolocation.osgeolocationlib
 
 import org.junit.Test
 
