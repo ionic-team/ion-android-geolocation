@@ -3,7 +3,7 @@ name: Run Unit Tests
 on:
   workflow_dispatch:
   push:
-    branches: [ main, development ]
+    branches: [ main, development, feat/RMET-3975/setup-pipelines]
   pull_request:
     branches: [ main, development ]
 
