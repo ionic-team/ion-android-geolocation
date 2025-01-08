@@ -1,6 +1,6 @@
 # OSGeolocationLib
 
-The `# OSGeolocationLib-Android` is a library built using `Kotlin` that provides geolocation features for Android applications.
+The `OSGeolocationLib-Android` is a library built using `Kotlin` that provides geolocation features for Android applications.
 
 The `OSGLOCController` class provides the main features of the Library, which are:
 - obtaining the location/position of the device a single time;
