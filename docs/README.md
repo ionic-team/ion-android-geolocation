@@ -47,7 +47,7 @@ The method is composed of the following input parameters:
 - **activity**: the `Activity` from the app using the library to use when obtaining the location.
 - **options**: `OSGLOCLocationOptions` with the options with which to make the location request with (e.g. timeout).
 
-The method returns a Result containing either an object of type `OSGLOCLocationResult`, which includes the geolocation data (e.g. latitide, longitude), or an exception that should be handled by the caller app.
+The method returns a `Result` containing either an object of type `OSGLOCLocationResult`, which includes the geolocation data (e.g. latitide, longitude), or an exception that should be handled by the caller app.
 
 ### Add a watch for periodic location updates
 
