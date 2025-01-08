@@ -15,7 +15,7 @@ The `OSGLOCController` class provides the main features of the Library, which ar
 - [Methods](#methods)
     - [Obtain the current location of the device](#obtain-the-current-location-of-the-device)
     - [Add a watch for periodic location updates](#add-a-watch-for-periodic-location-updates)
-    - [Clear a watch that was added previously](#clear-a-watch-that-was-addded-previously)
+    - [Clear a watch that was added previously](#clear-a-watch-that-was-added-previously)
 
 ## Motivation
 
@@ -34,7 +34,7 @@ In your app-level gradle file, import the `OSGeolocationLib` library like so:
 
 As mentioned before, the library offers the `OSGLOCController` class that provides the following methods to interact with:
 
-### Obtain the current position of the device
+### Obtain the current location of the device
 
 ```kotlin
 suspend fun getCurrentPosition(
