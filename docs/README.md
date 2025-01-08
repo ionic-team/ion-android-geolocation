@@ -13,9 +13,9 @@ The `OSGLOCController` class provides the main features of the Library, which ar
 - [Motivation](#motivation)
 - [Usage](#usage)
 - [Methods](#methods)
-    - [Obtain the location of the device](#obtain-the-current-location-of-the-device)
+    - [Obtain the current location of the device](#obtain-the-current-location-of-the-device)
     - [Add a watch to obtain periodic location updates](#add-a-watch-for-periodic-location-updates)
-    - [Clear a previously added watch](#clear-a-watch-that-was-addded-previously)
+    - [Clear a watch that was added previously](#clear-a-watch-that-was-addded-previously)
 
 ## Motivation
 
