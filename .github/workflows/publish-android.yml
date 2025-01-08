@@ -1,9 +1,6 @@
 name: Publish Native Android Library
 
-on:
-  workflow_dispatch:
-  push:
-    branches: [ feat/RMET-3975/setup-pipelines ]
+on: workflow_dispatch:
 
 jobs:
   publish-android:
