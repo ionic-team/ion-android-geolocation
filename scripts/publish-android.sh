@@ -5,7 +5,7 @@ LOG_OUTPUT=./tmp/publish-android.txt
 THE_VERSION=`sed -n 's/.*<version>\(.*\)<\/version>.*/\1/p' ../pom.xml`
 
 # Get latest io.ionic:portals XML version info
-PUBLISHED_URL="https://repo1.maven.org/maven2/com/capacitorjs/osgeolocation-android/maven-metadata.xml"
+PUBLISHED_URL="https://repo1.maven.org/maven2/io/ionic/libs/osgeolocation-android/maven-metadata.xml"
 PUBLISHED_DATA=$(curl -s $PUBLISHED_URL)
 PUBLISHED_VERSION="$(perl -ne 'print and last if s/.*<latest>(.*)<\/latest>.*/\1/;' <<< $PUBLISHED_DATA)"
 
@@ -21,9 +21,9 @@ else
 
     printf %"s\n" "Attempting to build and publish version $THE_VERSION"
     # Publish a release to the Maven repo
-     "$ANDROID_PATH"/gradlew clean build publishReleasePublicationToSonatypeRepository closeAndReleaseSonatypeStagingRepository --no-daemon --max-workers 1 -b "$ANDROID_PATH"/build.gradle -Pandroid.useAndroidX=true > $LOG_OUTPUT 2>&1
+    # "$ANDROID_PATH"/gradlew clean build publishReleasePublicationToSonatypeRepository closeAndReleaseSonatypeStagingRepository --no-daemon --max-workers 1 -b "$ANDROID_PATH"/build.gradle -Pandroid.useAndroidX=true > $LOG_OUTPUT 2>&1
     # Stage a version
-    # "$ANDROID_PATH"/gradlew clean build publishReleasePublicationToSonatypeRepository --no-daemon --max-workers 1 -b "$ANDROID_PATH"/build.gradle -Pandroid.useAndroidX=true > $LOG_OUTPUT 2>&1
+    "$ANDROID_PATH"/gradlew clean build publishReleasePublicationToSonatypeRepository --no-daemon --max-workers 1 -b "$ANDROID_PATH"/build.gradle -Pandroid.useAndroidX=true > $LOG_OUTPUT 2>&1
 
     echo $RESULT
 
