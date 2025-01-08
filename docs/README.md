@@ -1,50 +1,78 @@
 # OSGeolocationLib
 
-Welcome to **OSGeolocationLib**. This repository serves as a template to create repositories used to build Android libraries. This file will guide you through that process, that is defined by two sequential steps:
+The `# OSGeolocationLib-Android` is a library built using `Kotlin` that provides geolocation features for Android applications.
 
-1. Use the current repository as the template for the new one.
-2. Clone the new repository on our machine.
-3. Run a script that updates the created repository with the correct information.
+The `OSGLOCController` class provides the main features of the Library, which are:
+- obtaining the location/position of the device a single time;
+- adding a watch to obtain periodic location updates;
+- clearing/removing a previously added watch, turning off location updates.
 
-These steps are detailed in the next sections. 
 
-:warning: Every step listed here must be successfully completed before you start working on the new repository.
+## Index
 
-## Create a Repository Based on the Template
+- [Motivation](#motivation)
+- [Usage](#usage)
+- [Methods](#methods)
+    - [Obtain the location of the device](#obtain-the-current-location-of-the-device)
+    - [Add a watch to obtain periodic location updates](#add-a-watch-for-periodic-location-updates)
+    - [Clear a previously added watch](#clear-a-watch-that-was-addded-previously)
 
-First, we need to create a new repository. To accomplish this, please press the **Use this template** button available on the repository's GitHub webpage.
+## Motivation
 
-![Use this template button](./assets/useThisTemplateButton.png)
+This library is to be used by the Geolocation Plugin for [OutSystems' Cordova Plugin](https://github.com/ionic-team/cordova-outsystems-geolocation) and [Ionic's Capacitor Plugin](https://github.com/ionic-team/outsystems-geolocation).
 
-Next, we have to define the new repository's name. In order to get the maximum performance of the following step, we advise you to use the **[ProjectName]Lib-Android** format for the name. The names used for the **Health and Fitness** and the **Social Logins** are valid examples of the expected format (_OSHealthFitnessLib-Android_ and _OSSocialLoginsLib-Android_ respectively).
+## Usage
 
-The following image shows an example of the creation of a repository for the Android' Payments Library.
+In your app-level gradle file, import the `OSGeolocationLib` library like so:
 
-![Example for payments repository name](./assets/repositoryNameExample.png)
+    dependencies {
+    	implementation("com.capacitorjs:osgeolocation-android:1.0.0")
+	}
 
-After filling up the form as needed, the last step to effectively create the repository is the click on the **Create repository from template** button.
 
-![Create repository from template button](./assets/createRepositoryButton.png)
+## Methods
 
-## Clone the New Repository
+As mentioned before, the library offers the `OSGLOCController` class that provides the following methods to interact with:
 
-After completing the previous step, the next one is something common done in every repository a developer needs to do work on: clone the repository on the local machine.
+### Obtain the current position of the device
 
-## Run the **generator_script.sh**
-
-To finish the process, we just have one last thing to do. Run the **generator_script.sh** script that automates a couple of changes we need to apply. It is included in the _scripts_ folder.
-
-To run the script, please execute the following commands on **Terminal**:
-
+```kotlin
+suspend fun getCurrentPosition(
+    activity: Activity, 
+    options: OSGLOCLocationOptions
+): Result<OSGLOCLocationResult>
 ```
-cd scripts
-sh generator_script.sh
+
+The method is composed of the following input parameters:
+- **activity**: the `Activity` from the app using the library to use when obtaining the location.
+- **options**: `OSGLOCLocationOptions` with the options with which to make the location request with (e.g. timeout).
+
+The method returns a Result containing either an object of type `OSGLOCLocationResult`, which includes the geolocation data (e.g. latitide, longitude), or an exception that should be handled by the caller app.
+
+### Add a watch for periodic location updates
+
+```kotlin
+fun addWatch(
+    activity: Activity,
+    options: OSGLOCLocationOptions,
+    watchId: String
+): Flow<Result<List<OSGLOCLocationResult>>>
 ```
 
-Here's the complete list of what the script does:
+The method is composed of the following input parameters:
+- **activity**: the `Activity` from the app using the library to use when obtaining the location updates.
+- **options**: `OSGLOCLocationOptions` with the options with which to make the location updates request with (e.g. timeout).
+- **watchId**: a unique id identifying the watch to add, so that it can be removed later.
 
-- The script provides a bit of information, such as mentioning the name that it will use as the Library name (its based on the one you used while creating the repository on GitHub).
-- Requests the user for the application's package identifier. The format required is provided and needs to be complied with in order to advance.
-- It informs that the script itself will be deleted, as it is a one time execution only.
-- It performs the needed changes, replacing all placeholder's organisational identifier and library name for the ones provided by the user.
-- To conclude, the script commits and pushes the changes to the remote repository.
+The method returns a Flow in which hthe location updates will be emitted into.
+
+### Clear a watch that was added previously
+
+```kotlin
+fun clearWatch(id: String): Boolean
+```
+
+The method is composed of the following input parameters:
+- **id**: the `watchId` identigying the watch to remove.
+
+The method returns a Boolean indicating if the watch was cleared or not (in case the watch isn't found).
