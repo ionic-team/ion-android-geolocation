@@ -64,7 +64,7 @@ The method is composed of the following input parameters:
 - **options**: `OSGLOCLocationOptions` with the options with which to make the location updates request with (e.g. timeout).
 - **watchId**: a unique id identifying the watch to add, so that it can be removed later.
 
-The method returns a Flow in which hthe location updates will be emitted into.
+The method returns a Flow in which the location updates will be emitted to.
 
 ### Clear a watch that was added previously
 
