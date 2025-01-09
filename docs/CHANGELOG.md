@@ -7,8 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0]
 
 ### 2024-02-07
-- Feat: Add workflows to run unit tests and release the library in Maven repo (https://outsystemsrd.atlassian.net/browse/RMET-3975).
+- Feat: Add workflows to run unit tests and release the library in Maven repo.
 
 ### 2025-01-07
-- Feat: Add implementation for whole library, including `getCurrentPosition`, `watchPosition`, and `clearWatch` (https://outsystemsrd.atlassian.net/browse/RMET-3370).
-- Chore: Create repository (https://outsystemsrd.atlassian.net/browse/RMET-3975).
+- Feat: Add implementation for whole library, including `getCurrentPosition`, `watchPosition`, and `clearWatch`.
+- Chore: Create repository.
