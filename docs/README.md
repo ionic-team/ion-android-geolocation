@@ -19,7 +19,7 @@ The `OSGLOCController` class provides the main features of the Library, which ar
 
 ## Motivation
 
-This library is to be used by the Geolocation Plugin for [OutSystems' Cordova Plugin](https://github.com/ionic-team/cordova-outsystems-geolocation) and [Ionic's Capacitor Plugin](https://github.com/ionic-team/outsystems-geolocation).
+This library is used by the Geolocation Plugin for [OutSystems' Cordova Plugin](https://github.com/ionic-team/cordova-outsystems-geolocation) and [Ionic's Capacitor Plugin](https://github.com/ionic-team/outsystems-geolocation).
 
 ## Usage
 
