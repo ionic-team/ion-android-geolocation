@@ -33,5 +33,5 @@ nexusPublishing {
             snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
         }
     }
-    repositoryDescription = 'OSGeolocation Lib v' + System.getenv('THE_VERSION')
+    repositoryDescription = 'OSGeolocation Android Lib v' + System.getenv('THE_VERSION')
 }

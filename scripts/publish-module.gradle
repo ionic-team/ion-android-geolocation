@@ -5,20 +5,15 @@ def LIB_VERSION = System.getenv('THE_VERSION')
 
 task androidSourcesJar(type: Jar) {
     archiveClassifier.set('sources')
-    //if (project.plugins.findPlugin("com.android.library")) {
-        from android.sourceSets.main.java.srcDirs
-        from android.sourceSets.main.kotlin.srcDirs
-    //} else {
-    //    from sourceSets.main.java.srcDirs
-    //    from sourceSets.main.kotlin.srcDirs
-    //}
+    from android.sourceSets.main.java.srcDirs
+    from android.sourceSets.main.kotlin.srcDirs
 }
 
 artifacts {
     archives androidSourcesJar
 }
 
-group = 'com.capacitorjs'
+group = 'io.ionic.libs'
 version = LIB_VERSION
 
 afterEvaluate {
@@ -26,8 +21,8 @@ afterEvaluate {
         publications {
             release(MavenPublication) {
                 // Coordinates
-                groupId 'com.capacitorjs'
-                artifactId 'osgeolocationlib-android'
+                groupId 'io.ionic.libs'
+                artifactId 'osgeolocation-android'
                 version LIB_VERSION
 
                 // Two artifacts, the `aar` (or `jar`) and the sources
@@ -41,13 +36,13 @@ afterEvaluate {
 
                 // POM Data
                 pom {
-                    name = 'geolocationlib-android'
+                    name = 'osgeolocation-android'
                     description = 'Geolocation Android Lib'
-                    url = 'https://github.com/ionic-team/outsystems-geolocation/packages/android-lib'
+                    url = 'https://github.com/ionic-team/OSGeolocationLib-Android'
                     licenses {
                         license {
                             name = 'License'
-                            url = 'https://github.com/ionic-team/outsystems-geolocation/blob/main/packages/android-lib/LICENSE'
+                            url = 'https://github.com/ionic-team/OSGeolocationLib-Android/blob/main/docs/LICENSE'
                         }
                     }
                     developers {
@@ -59,9 +54,9 @@ afterEvaluate {
 
                     // Version Control Info
                     scm {
-                        connection = 'scm:git:github.com:ionic-team/outsystems-geolocation.git'
-                        developerConnection = 'scm:git:ssh://github.com:ionic-team/outsystems-geolocation.git'
-                        url = 'https://github.com/ionic-team/outsystems-geolocation/tree/main'
+                        connection = 'scm:git:github.com:ionic-team/OSGeolocationLib-Android.git'
+                        developerConnection = 'scm:git:ssh://github.com:ionic-team/OSGeolocationLib-Android.git'
+                        url = 'https://github.com/ionic-team/OSGeolocationLib-Android/tree/main'
                     }
                 }
             }
