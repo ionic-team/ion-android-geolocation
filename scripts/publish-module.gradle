@@ -42,7 +42,7 @@ afterEvaluate {
                     licenses {
                         license {
                             name = 'License'
-                            url = 'https://github.com/ionic-team/OSGeolocationLib-Android/blob/main/LICENSE'
+                            url = 'https://github.com/ionic-team/OSGeolocationLib-Android/blob/main/docs/LICENSE'
                         }
                     }
                     developers {
