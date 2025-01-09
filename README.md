@@ -16,6 +16,10 @@ The `OSGLOCController` class provides the main features of the Library, which ar
     - [Obtain the current location of the device](#obtain-the-current-location-of-the-device)
     - [Add a watch for periodic location updates](#add-a-watch-for-periodic-location-updates)
     - [Clear a watch that was added previously](#clear-a-watch-that-was-added-previously)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
 
 ## Motivation
 
@@ -76,3 +80,33 @@ The method is composed of the following input parameters:
 - **id**: the `watchId` identigying the watch to remove.
 
 The method returns a Boolean indicating if the watch was cleared or not (in case the watch isn't found).
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. Location updates not received
+   - Check that location permission is allowed on the device
+   - Verify location services are enabled on the device
+   - Ensure the necessary permissions are included in `AndroidManifest.xml`
+
+2. Poor accuracy
+   - Enable high accuracy mode
+   - Ensure clear sky view
+   - Wait for better GPS signal
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+`OSGeolocationLib` is available under the MIT license. See the [LICENSE](LICENSE) file for more info.
+
+## Support
+
+- Report issues on our [Issue Tracker](https://github.com/ionic-team/OSGeolocationLib-Android/issues)
