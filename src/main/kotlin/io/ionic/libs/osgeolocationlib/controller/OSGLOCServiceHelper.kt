@@ -1,4 +1,4 @@
-package com.outsystems.plugins.osgeolocation.controller
+package io.ionic.libs.osgeolocationlib.controller
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -16,8 +16,8 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
-import com.outsystems.plugins.osgeolocation.model.OSGLOCException
-import com.outsystems.plugins.osgeolocation.model.OSGLOCLocationOptions
+import io.ionic.libs.osgeolocationlib.model.OSGLOCException
+import io.ionic.libs.osgeolocationlib.model.OSGLOCLocationOptions
 import kotlinx.coroutines.tasks.await
 
 /**

@@ -1,4 +1,4 @@
-package com.outsystems.plugins.osgeolocation.controller
+package io.ionic.libs.osgeolocationlib.controller
 
 import android.app.Activity
 import android.app.PendingIntent
@@ -22,9 +22,9 @@ import com.google.android.gms.location.LocationSettingsResponse
 import com.google.android.gms.location.LocationSettingsResult
 import com.google.android.gms.location.SettingsClient
 import com.google.android.gms.tasks.Task
-import com.outsystems.plugins.osgeolocation.model.OSGLOCException
-import com.outsystems.plugins.osgeolocation.model.OSGLOCLocationOptions
-import com.outsystems.plugins.osgeolocation.model.OSGLOCLocationResult
+import io.ionic.libs.osgeolocationlib.model.OSGLOCException
+import io.ionic.libs.osgeolocationlib.model.OSGLOCLocationOptions
+import io.ionic.libs.osgeolocationlib.model.OSGLOCLocationResult
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk

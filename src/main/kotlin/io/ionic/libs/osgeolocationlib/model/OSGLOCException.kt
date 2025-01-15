@@ -1,4 +1,4 @@
-package com.outsystems.plugins.osgeolocation.model
+package io.ionic.libs.osgeolocationlib.model
 
 /**
  * Sealed class with exceptions that the library's functions can throw

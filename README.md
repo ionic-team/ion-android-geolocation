@@ -29,10 +29,11 @@ This library is used by the Geolocation Plugin for [OutSystems' Cordova Plugin](
 
 In your app-level gradle file, import the `OSGeolocationLib` library like so:
 
+```
     dependencies {
-    	implementation("com.capacitorjs:osgeolocation-android:1.0.0")
+    	implementation("io.ionic.libs:osgeolocation-android:1.0.0")
 	}
-
+```
 
 ## Methods
 

@@ -1,4 +1,4 @@
-package com.outsystems.plugins.osgeolocation.controller
+package io.ionic.libs.osgeolocationlib.controller
 
 import android.os.Build
 

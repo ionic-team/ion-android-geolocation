@@ -1,4 +1,4 @@
-package com.outsystems.plugins.osgeolocation.model
+package io.ionic.libs.osgeolocationlib.model
 
 /**
  * Data class representing the object returned in getCurrentPosition and watchPosition

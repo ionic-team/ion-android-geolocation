@@ -40,7 +40,7 @@ apply plugin: "kotlin-android"
 apply plugin: "jacoco"
 
 android {
-    namespace "com.outsystems.plugins.osgeolocation"
+    namespace "io.ionic.libs.osgeolocationlib"
     compileSdk 35
 
     defaultConfig {
