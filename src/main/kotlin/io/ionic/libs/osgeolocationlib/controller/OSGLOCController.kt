@@ -1,4 +1,4 @@
-package com.outsystems.plugins.osgeolocation.controller
+package io.ionic.libs.osgeolocationlib.controller
 
 import android.app.Activity
 import android.content.Context
@@ -12,9 +12,9 @@ import androidx.core.location.LocationManagerCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
-import com.outsystems.plugins.osgeolocation.model.OSGLOCException
-import com.outsystems.plugins.osgeolocation.model.OSGLOCLocationOptions
-import com.outsystems.plugins.osgeolocation.model.OSGLOCLocationResult
+import io.ionic.libs.osgeolocationlib.model.OSGLOCException
+import io.ionic.libs.osgeolocationlib.model.OSGLOCLocationOptions
+import io.ionic.libs.osgeolocationlib.model.OSGLOCLocationResult
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
