@@ -1,8 +1,8 @@
-# OSGeolocationLib
+# IONGeolocationLib
 
-The `OSGeolocationLib-Android` is a library built using `Kotlin` that provides geolocation features for Android applications.
+The `IONGeolocationLib-Android` is a library built using `Kotlin` that provides geolocation features for Android applications.
 
-The `OSGLOCController` class provides the main features of the Library, which are:
+The `IONGLOCController` class provides the main features of the Library, which are:
 - obtaining the location/position of the device a single time;
 - adding a watch to obtain periodic location updates;
 - clearing/removing a previously added watch, turning off location updates.
@@ -27,17 +27,17 @@ This library is used by the Geolocation Plugin for [OutSystems' Cordova Plugin](
 
 ## Usage
 
-In your app-level gradle file, import the `OSGeolocationLib` library like so:
+In your app-level gradle file, import the `IONGeolocationLib` library like so:
 
 ```
     dependencies {
-    	implementation("io.ionic.libs:osgeolocation-android:1.0.0")
+    	implementation("io.ionic.libs:iongeolocation-android:1.0.0")
 	}
 ```
 
 ## Methods
 
-As mentioned before, the library offers the `OSGLOCController` class that provides the following methods to interact with:
+As mentioned before, the library offers the `IONGLOCController` class that provides the following methods to interact with:
 
 ### Obtain the current location of the device
 
@@ -106,8 +106,8 @@ Common issues and solutions:
 
 ## License
 
-`OSGeolocationLib` is available under the MIT license. See the [LICENSE](LICENSE) file for more info.
+`IONGeolocationLib` is available under the MIT license. See the [LICENSE](LICENSE) file for more info.
 
 ## Support
 
-- Report issues on our [Issue Tracker](https://github.com/ionic-team/OSGeolocationLib-Android/issues)
+- Report issues on our [Issue Tracker](https://github.com/ionic-team/IONGeolocationLib-Android/issues)

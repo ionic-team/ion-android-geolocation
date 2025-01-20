@@ -1,4 +1,4 @@
-package io.ionic.libs.osgeolocationlib.controller
+package io.ionic.libs.iongeolocationlib.controller
 
 import android.app.Activity
 import android.app.PendingIntent
@@ -22,9 +22,9 @@ import com.google.android.gms.location.LocationSettingsResponse
 import com.google.android.gms.location.LocationSettingsResult
 import com.google.android.gms.location.SettingsClient
 import com.google.android.gms.tasks.Task
-import io.ionic.libs.osgeolocationlib.model.OSGLOCException
-import io.ionic.libs.osgeolocationlib.model.OSGLOCLocationOptions
-import io.ionic.libs.osgeolocationlib.model.OSGLOCLocationResult
+import io.ionic.libs.iongeolocationlib.model.IONGLOCException
+import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
+import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -47,18 +47,17 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import kotlin.math.max
 
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class OSGLOCControllerTest {
+class IONGLOCControllerTest {
 
     private val fusedLocationProviderClient = mockk<FusedLocationProviderClient>()
     private val activityResultLauncher = mockk<ActivityResultLauncher<IntentSenderRequest>>()
     private val googleApiAvailability = mockk<GoogleApiAvailability>()
     private val locationSettingsClient = mockk<SettingsClient>()
     private val helper = spyk(
-        OSGLOCServiceHelper(fusedLocationProviderClient, activityResultLauncher)
+        IONGLOCServiceHelper(fusedLocationProviderClient, activityResultLauncher)
     )
 
     private val mockAndroidLocation = mockkLocation()
@@ -66,7 +65,7 @@ class OSGLOCControllerTest {
     private val currentLocationTask = mockk<Task<Location?>>(relaxed = true)
     private val voidTask = mockk<Task<Void>>(relaxed = true)
 
-    private lateinit var sut: OSGLOCController
+    private lateinit var sut: IONGLOCController
     private lateinit var locationCallback: LocationCallback
 
     @Before
@@ -76,15 +75,15 @@ class OSGLOCControllerTest {
         mockkStatic(LocationServices::class)
         every { LocationServices.getSettingsClient(any()) } returns locationSettingsClient
         mockkStatic("kotlinx.coroutines.tasks.TasksKt")
-        mockkObject(OSGLOCBuildConfig)
-        every { OSGLOCBuildConfig.getAndroidSdkVersionCode() } returns Build.VERSION_CODES.VANILLA_ICE_CREAM
+        mockkObject(IONGLOCBuildConfig)
+        every { IONGLOCBuildConfig.getAndroidSdkVersionCode() } returns Build.VERSION_CODES.VANILLA_ICE_CREAM
         mockkStatic(Log::class)
         every { Log.d(any(), any()) } returns 0
         every { Log.d(any(), any(), any()) } returns 0
         mockkStatic(Looper::class)
         every { Looper.getMainLooper() } returns mockk<Looper>()
 
-        sut = OSGLOCController(
+        sut = IONGLOCController(
             fusedLocationClient = fusedLocationProviderClient,
             activityLauncher = activityResultLauncher,
             helper = helper
@@ -95,7 +94,7 @@ class OSGLOCControllerTest {
     fun tearDown() {
         unmockkStatic(Looper::class)
         unmockkStatic(Log::class)
-        unmockkObject(OSGLOCBuildConfig)
+        unmockkObject(IONGLOCBuildConfig)
         unmockkStatic("kotlinx.coroutines.tasks.TasksKt")
         unmockkStatic(LocationServices::class)
         unmockkStatic(GoogleApiAvailability::class)
@@ -122,7 +121,7 @@ class OSGLOCControllerTest {
                 sut.getCurrentPosition(mockk<Activity>(), locationOptions.copy(timeout = -1))
 
             assertTrue(result.isFailure)
-            assertTrue(result.exceptionOrNull() is OSGLOCException.OSGLOCInvalidTimeoutException)
+            assertTrue(result.exceptionOrNull() is IONGLOCException.IONGLOCInvalidTimeoutException)
         }
 
     @Test
@@ -134,7 +133,7 @@ class OSGLOCControllerTest {
             val result = sut.getCurrentPosition(mockk<Activity>(), locationOptions)
 
             assertTrue(result.isFailure)
-            assertTrue(result.exceptionOrNull() is OSGLOCException.OSGLOCLocationRetrievalTimeoutException)
+            assertTrue(result.exceptionOrNull() is IONGLOCException.IONGLOCLocationRetrievalTimeoutException)
         }
 
     @Test
@@ -146,8 +145,8 @@ class OSGLOCControllerTest {
 
             assertTrue(result.isFailure)
             result.exceptionOrNull().let { exception ->
-                assertTrue(exception is OSGLOCException.OSGLOCGoogleServicesException)
-                assertTrue((exception as OSGLOCException.OSGLOCGoogleServicesException).resolvable)
+                assertTrue(exception is IONGLOCException.IONGLOCGoogleServicesException)
+                assertTrue((exception as IONGLOCException.IONGLOCGoogleServicesException).resolvable)
             }
         }
 
@@ -160,8 +159,8 @@ class OSGLOCControllerTest {
 
             assertTrue(result.isFailure)
             result.exceptionOrNull().let { exception ->
-                assertTrue(exception is OSGLOCException.OSGLOCGoogleServicesException)
-                assertFalse((exception as OSGLOCException.OSGLOCGoogleServicesException).resolvable)
+                assertTrue(exception is IONGLOCException.IONGLOCGoogleServicesException)
+                assertFalse((exception as IONGLOCException.IONGLOCGoogleServicesException).resolvable)
             }
         }
 
@@ -188,7 +187,7 @@ class OSGLOCControllerTest {
             testScheduler.advanceTimeBy(DELAY)
 
             assertTrue(result.isFailure)
-            assertTrue(result.exceptionOrNull() is OSGLOCException.OSGLOCRequestDeniedException)
+            assertTrue(result.exceptionOrNull() is IONGLOCException.IONGLOCRequestDeniedException)
         }
 
     @Test
@@ -202,10 +201,10 @@ class OSGLOCControllerTest {
 
             assertTrue(result.isFailure)
             result.exceptionOrNull().let { exception ->
-                assertTrue(exception is OSGLOCException.OSGLOCSettingsException)
+                assertTrue(exception is IONGLOCException.IONGLOCSettingsException)
                 assertEquals(
                     error,
-                    (exception as OSGLOCException.OSGLOCSettingsException).cause
+                    (exception as IONGLOCException.IONGLOCSettingsException).cause
                 )
             }
         }
@@ -254,8 +253,8 @@ class OSGLOCControllerTest {
 
                 assertTrue(result.isFailure)
                 result.exceptionOrNull().let { exception ->
-                    assertTrue(exception is OSGLOCException.OSGLOCGoogleServicesException)
-                    assertTrue((exception as OSGLOCException.OSGLOCGoogleServicesException).resolvable)
+                    assertTrue(exception is IONGLOCException.IONGLOCGoogleServicesException)
+                    assertTrue((exception as IONGLOCException.IONGLOCGoogleServicesException).resolvable)
                 }
                 expectNoEvents()
             }
@@ -289,7 +288,7 @@ class OSGLOCControllerTest {
                 val result = awaitItem()
 
                 assertTrue(result.isFailure)
-                assertTrue(result.exceptionOrNull() is OSGLOCException.OSGLOCRequestDeniedException)
+                assertTrue(result.exceptionOrNull() is IONGLOCException.IONGLOCRequestDeniedException)
                 expectNoEvents()
             }
         }
@@ -307,10 +306,10 @@ class OSGLOCControllerTest {
 
                 assertTrue(result.isFailure)
                 result.exceptionOrNull().let { exception ->
-                    assertTrue(exception is OSGLOCException.OSGLOCSettingsException)
+                    assertTrue(exception is IONGLOCException.IONGLOCSettingsException)
                     assertEquals(
                         error,
-                        (exception as OSGLOCException.OSGLOCSettingsException).cause
+                        (exception as IONGLOCException.IONGLOCSettingsException).cause
                     )
                 }
                 expectNoEvents()
@@ -440,14 +439,14 @@ class OSGLOCControllerTest {
     companion object {
         private const val DELAY = 3_000L
 
-        private val locationOptions = OSGLOCLocationOptions(
+        private val locationOptions = IONGLOCLocationOptions(
             timeout = 5000,
             maximumAge = 3000,
             enableHighAccuracy = true,
             minUpdateInterval = 2000L
         )
 
-        private val locationResult = OSGLOCLocationResult(
+        private val locationResult = IONGLOCLocationResult(
             latitude = 1.0,
             longitude = 2.0,
             altitude = 3.0,

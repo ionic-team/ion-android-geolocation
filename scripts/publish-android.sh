@@ -5,7 +5,7 @@ LOG_OUTPUT=./tmp/publish-android.txt
 THE_VERSION=`sed -n 's/.*<version>\(.*\)<\/version>.*/\1/p' ../pom.xml`
 
 # Get latest io.ionic:portals XML version info
-PUBLISHED_URL="https://repo1.maven.org/maven2/io/ionic/libs/osgeolocation-android/maven-metadata.xml"
+PUBLISHED_URL="https://repo1.maven.org/maven2/io/ionic/libs/iongeolocation-android/maven-metadata.xml"
 PUBLISHED_DATA=$(curl -s $PUBLISHED_URL)
 PUBLISHED_VERSION="$(perl -ne 'print and last if s/.*<latest>(.*)<\/latest>.*/\1/;' <<< $PUBLISHED_DATA)"
 

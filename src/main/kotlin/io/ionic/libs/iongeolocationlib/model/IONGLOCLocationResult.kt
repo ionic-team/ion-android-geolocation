@@ -1,9 +1,9 @@
-package io.ionic.libs.osgeolocationlib.model
+package io.ionic.libs.iongeolocationlib.model
 
 /**
  * Data class representing the object returned in getCurrentPosition and watchPosition
  */
-data class OSGLOCLocationResult(
+data class IONGLOCLocationResult(
     val latitude: Double,
     val longitude: Double,
     val altitude: Double,
