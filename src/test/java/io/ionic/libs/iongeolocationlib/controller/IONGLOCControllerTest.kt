@@ -113,7 +113,7 @@ class IONGLOCControllerTest {
         }
 
     @Test
-    fun `given negative timeout in getCurrentLocation, OSGLOCInvalidTimeoutException is returned`() =
+    fun `given negative timeout in getCurrentLocation, IONGLOCInvalidTimeoutException is returned`() =
         runTest {
             // nothing to setup in this test
 
@@ -125,7 +125,7 @@ class IONGLOCControllerTest {
         }
 
     @Test
-    fun `given null location is returned, when getCurrentLocation is called, OSGLOCLocationRetrievalTimeoutException is returned`() =
+    fun `given null location is returned, when getCurrentLocation is called, IONGLOCLocationRetrievalTimeoutException is returned`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
             coEvery { currentLocationTask.await() } returns null
@@ -137,7 +137,7 @@ class IONGLOCControllerTest {
         }
 
     @Test
-    fun `given play services not available with resolvable error, when getCurrentLocation is called, OSGLOCGoogleServicesException is returned with resolvable=true`() =
+    fun `given play services not available with resolvable error, when getCurrentLocation is called, IONGLOCGoogleServicesException is returned with resolvable=true`() =
         runTest {
             givenPlayServicesNotAvailableWithResolvableError()
 
@@ -151,7 +151,7 @@ class IONGLOCControllerTest {
         }
 
     @Test
-    fun `given play services not available with un-resolvable error, when getCurrentLocation is called, OSGLOCGoogleServicesException is returned with resolvable=false`() =
+    fun `given play services not available with un-resolvable error, when getCurrentLocation is called, IONGLOCGoogleServicesException is returned with resolvable=false`() =
         runTest {
             givenPlayServicesNotAvailableWithUnResolvableError()
 
@@ -178,7 +178,7 @@ class IONGLOCControllerTest {
         }
 
     @Test
-    fun `given user does not resolve location settings, when getCurrentLocation is called, OSGLOCRequestDeniedException returned`() =
+    fun `given user does not resolve location settings, when getCurrentLocation is called, IONGLOCRequestDeniedException returned`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
             givenResolvableApiException(Activity.RESULT_CANCELED)
@@ -191,7 +191,7 @@ class IONGLOCControllerTest {
         }
 
     @Test
-    fun `given location settings check fails, when getCurrentLocation is called, OSGLOCSettingsException is returned`() =
+    fun `given location settings check fails, when getCurrentLocation is called, IONGLOCSettingsException is returned`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
             val error = RuntimeException()
@@ -244,7 +244,7 @@ class IONGLOCControllerTest {
         }
 
     @Test
-    fun `given play services not available, when addWatch is called, OSGLOCGoogleServicesException is returned`() =
+    fun `given play services not available, when addWatch is called, IONGLOCGoogleServicesException is returned`() =
         runTest {
             givenPlayServicesNotAvailableWithResolvableError()
 
@@ -278,7 +278,7 @@ class IONGLOCControllerTest {
         }
 
     @Test
-    fun `given user does not resolve location settings, when addWatch is called, OSGLOCRequestDeniedException returned`() =
+    fun `given user does not resolve location settings, when addWatch is called, IONGLOCRequestDeniedException returned`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
             givenResolvableApiException(Activity.RESULT_CANCELED)
@@ -294,7 +294,7 @@ class IONGLOCControllerTest {
         }
 
     @Test
-    fun `given location settings check fails, when addWatch is called, OSGLOCSettingsException is returned`() =
+    fun `given location settings check fails, when addWatch is called, IONGLOCSettingsException is returned`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
             val error = RuntimeException()

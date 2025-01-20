@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
 
 /**
- * Entry point in OSGeolocationLib-Android
+ * Entry point in IONGeolocationLib-Android
  *
  */
 class IONGLOCController(
@@ -41,8 +41,8 @@ class IONGLOCController(
      * Obtains the device's location using FusedLocationProviderClient.
      * Tries to obtain the last retrieved location, and then gets a fresh one if necessary.
      * @param activity the Android activity from which the location request is being triggered
-     * @param options OSLocationOptions object with the options to obtain the location with (e.g. timeout)
-     * @return Result<OSLocationResult> object with either the location or an exception to be handled by the caller
+     * @param options IONGLOCLocationOptions object with the options to obtain the location with (e.g. timeout)
+     * @return Result<IONGLOCLocationResult> object with either the location or an exception to be handled by the caller
      */
     suspend fun getCurrentPosition(
         activity: Activity,
@@ -238,7 +238,7 @@ class IONGLOCController(
     )
 
     companion object {
-        private const val LOG_TAG = "OSGeolocationController"
+        private const val LOG_TAG = "IONGeolocationController"
     }
 
 }

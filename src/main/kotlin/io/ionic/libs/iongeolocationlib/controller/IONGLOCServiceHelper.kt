@@ -100,7 +100,7 @@ class IONGLOCServiceHelper(
     }
 
     /**
-     * Returns a Result object containing an OSGLOCException.OSGLOCGoogleServicesException exception with the given
+     * Returns a Result object containing an IONGLOCException.IONGLOCGoogleServicesException exception with the given
      * resolvable and message values
      * @param resolvable whether or not the exception is resolvable
      * @param message message to include in the exception
