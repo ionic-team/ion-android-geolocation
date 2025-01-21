@@ -22,7 +22,7 @@ afterEvaluate {
             release(MavenPublication) {
                 // Coordinates
                 groupId 'io.ionic.libs'
-                artifactId 'osgeolocation-android'
+                artifactId 'iongeolocation-android'
                 version LIB_VERSION
 
                 // Two artifacts, the `aar` (or `jar`) and the sources
@@ -36,13 +36,13 @@ afterEvaluate {
 
                 // POM Data
                 pom {
-                    name = 'osgeolocation-android'
+                    name = 'iongeolocation-android'
                     description = 'Geolocation Android Lib'
-                    url = 'https://github.com/ionic-team/OSGeolocationLib-Android'
+                    url = 'https://github.com/ionic-team/IONGeolocationLib-Android'
                     licenses {
                         license {
                             name = 'License'
-                            url = 'https://github.com/ionic-team/OSGeolocationLib-Android/blob/main/LICENSE'
+                            url = 'https://github.com/ionic-team/IONGeolocationLib-Android/blob/main/LICENSE'
                         }
                     }
                     developers {
@@ -54,9 +54,9 @@ afterEvaluate {
 
                     // Version Control Info
                     scm {
-                        connection = 'scm:git:github.com:ionic-team/OSGeolocationLib-Android.git'
-                        developerConnection = 'scm:git:ssh://github.com:ionic-team/OSGeolocationLib-Android.git'
-                        url = 'https://github.com/ionic-team/OSGeolocationLib-Android/tree/main'
+                        connection = 'scm:git:github.com:ionic-team/IONGeolocationLib-Android.git'
+                        developerConnection = 'scm:git:ssh://github.com:ionic-team/IONGeolocationLib-Android.git'
+                        url = 'https://github.com/ionic-team/IONGeolocationLib-Android/tree/main'
                     }
                 }
             }

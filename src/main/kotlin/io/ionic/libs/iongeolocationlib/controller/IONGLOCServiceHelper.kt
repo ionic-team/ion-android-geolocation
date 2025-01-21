@@ -1,4 +1,4 @@
-package io.ionic.libs.osgeolocationlib.controller
+package io.ionic.libs.iongeolocationlib.controller
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -16,14 +16,14 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
-import io.ionic.libs.osgeolocationlib.model.OSGLOCException
-import io.ionic.libs.osgeolocationlib.model.OSGLOCLocationOptions
+import io.ionic.libs.iongeolocationlib.model.IONGLOCException
+import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
 import kotlinx.coroutines.tasks.await
 
 /**
  * Helper class that wraps the functionality of FusedLocationProviderClient
  */
-class OSGLOCServiceHelper(
+class IONGLOCServiceHelper(
     private val fusedLocationClient: FusedLocationProviderClient,
     private val activityLauncher: ActivityResultLauncher<IntentSenderRequest>
 ) {
@@ -34,11 +34,11 @@ class OSGLOCServiceHelper(
      * @param interval interval for requesting location updates; use 0 if meant to retrieve a single location
      * @return true if location was checked and is on, false if it requires user to resolve issue (e.g. turn on location)
      *          If false, the result is returned in `resolveLocationSettingsResultFlow`
-     * @throws [OSGLOCException.OSGLOCSettingsException] if an error occurs that is not resolvable by user
+     * @throws [IONGLOCException.IONGLOCSettingsException] if an error occurs that is not resolvable by user
      */
     internal suspend fun checkLocationSettings(
         activity: Activity,
-        options: OSGLOCLocationOptions,
+        options: IONGLOCLocationOptions,
         interval: Long
     ): Boolean {
 
@@ -64,7 +64,7 @@ class OSGLOCServiceHelper(
 
             activityLauncher.launch(resolution)
         } catch (e: Exception) {
-            throw OSGLOCException.OSGLOCSettingsException(
+            throw IONGLOCException.IONGLOCSettingsException(
                 message = "There is an error with the location settings.",
                 cause = e
             )
@@ -100,7 +100,7 @@ class OSGLOCServiceHelper(
     }
 
     /**
-     * Returns a Result object containing an OSGLOCException.OSGLOCGoogleServicesException exception with the given
+     * Returns a Result object containing an IONGLOCException.IONGLOCGoogleServicesException exception with the given
      * resolvable and message values
      * @param resolvable whether or not the exception is resolvable
      * @param message message to include in the exception
@@ -109,7 +109,7 @@ class OSGLOCServiceHelper(
      */
     private fun sendResultWithGoogleServicesException(resolvable: Boolean, message: String): Result<Unit> {
         return Result.failure(
-            OSGLOCException.OSGLOCGoogleServicesException(
+            IONGLOCException.IONGLOCGoogleServicesException(
                 resolvable = resolvable,
                 message = message
             )
@@ -122,7 +122,7 @@ class OSGLOCServiceHelper(
      * @return Location object representing the location
      */
     @SuppressLint("MissingPermission")
-    internal suspend fun getCurrentLocation(options: OSGLOCLocationOptions): Location {
+    internal suspend fun getCurrentLocation(options: IONGLOCLocationOptions): Location {
 
         val locationRequest = CurrentLocationRequest.Builder()
             .setPriority(if (options.enableHighAccuracy) Priority.PRIORITY_HIGH_ACCURACY else Priority.PRIORITY_BALANCED_POWER_ACCURACY)
@@ -131,7 +131,7 @@ class OSGLOCServiceHelper(
             .build()
 
         return fusedLocationClient.getCurrentLocation(locationRequest, null).await()
-            ?: throw OSGLOCException.OSGLOCLocationRetrievalTimeoutException(
+            ?: throw IONGLOCException.IONGLOCLocationRetrievalTimeoutException(
                 message = "Location request timed out"
             )
     }
@@ -145,7 +145,7 @@ class OSGLOCServiceHelper(
      */
     @SuppressLint("MissingPermission")
     internal fun requestLocationUpdates(
-        options: OSGLOCLocationOptions,
+        options: IONGLOCLocationOptions,
         locationCallback: LocationCallback
     ) {
         val locationRequest = LocationRequest.Builder(options.timeout).apply {

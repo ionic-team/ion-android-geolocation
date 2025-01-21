@@ -24,7 +24,7 @@ plugins {
 
 sonarqube {
     properties {
-        property "sonar.projectKey", "OutSystems_OSGeolocationLib-Android"
+        property "sonar.projectKey", "OutSystems_IONGeolocationLib-Android"
         property "sonar.organization", "outsystemsrd"
         property "sonar.host.url", "https://sonarcloud.io"
     }
@@ -40,7 +40,7 @@ apply plugin: "kotlin-android"
 apply plugin: "jacoco"
 
 android {
-    namespace "io.ionic.libs.osgeolocationlib"
+    namespace "io.ionic.libs.iongeolocationlib"
     compileSdk 35
 
     defaultConfig {

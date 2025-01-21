@@ -1,4 +1,4 @@
-package io.ionic.libs.osgeolocationlib.controller
+package io.ionic.libs.iongeolocationlib.controller
 
 import android.app.Activity
 import android.content.Context
@@ -12,9 +12,9 @@ import androidx.core.location.LocationManagerCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
-import io.ionic.libs.osgeolocationlib.model.OSGLOCException
-import io.ionic.libs.osgeolocationlib.model.OSGLOCLocationOptions
-import io.ionic.libs.osgeolocationlib.model.OSGLOCLocationResult
+import io.ionic.libs.iongeolocationlib.model.IONGLOCException
+import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
+import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -22,13 +22,13 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
 
 /**
- * Entry point in OSGeolocationLib-Android
+ * Entry point in IONGeolocationLib-Android
  *
  */
-class OSGLOCController(
+class IONGLOCController(
     fusedLocationClient: FusedLocationProviderClient,
     activityLauncher: ActivityResultLauncher<IntentSenderRequest>,
-    private val helper: OSGLOCServiceHelper = OSGLOCServiceHelper(
+    private val helper: IONGLOCServiceHelper = IONGLOCServiceHelper(
         fusedLocationClient,
         activityLauncher
     )
@@ -41,13 +41,13 @@ class OSGLOCController(
      * Obtains the device's location using FusedLocationProviderClient.
      * Tries to obtain the last retrieved location, and then gets a fresh one if necessary.
      * @param activity the Android activity from which the location request is being triggered
-     * @param options OSLocationOptions object with the options to obtain the location with (e.g. timeout)
-     * @return Result<OSLocationResult> object with either the location or an exception to be handled by the caller
+     * @param options IONGLOCLocationOptions object with the options to obtain the location with (e.g. timeout)
+     * @return Result<IONGLOCLocationResult> object with either the location or an exception to be handled by the caller
      */
     suspend fun getCurrentPosition(
         activity: Activity,
-        options: OSGLOCLocationOptions
-    ): Result<OSGLOCLocationResult> {
+        options: IONGLOCLocationOptions
+    ): Result<IONGLOCLocationResult> {
         try {
             val checkResult: Result<Unit> =
                 checkLocationPreconditions(activity, options, isSingleLocationRequest = true)
@@ -77,7 +77,7 @@ class OSGLOCController(
                 Result.success(Unit)
             else
                 Result.failure(
-                    OSGLOCException.OSGLOCRequestDeniedException(
+                    IONGLOCException.IONGLOCRequestDeniedException(
                         message = "Request to enable location denied."
                     )
                 )
@@ -101,9 +101,9 @@ class OSGLOCController(
      */
     fun addWatch(
         activity: Activity,
-        options: OSGLOCLocationOptions,
+        options: IONGLOCLocationOptions,
         watchId: String
-    ): Flow<Result<List<OSGLOCLocationResult>>> = callbackFlow {
+    ): Flow<Result<List<IONGLOCLocationResult>>> = callbackFlow {
 
         try {
             val checkResult: Result<Unit> =
@@ -152,13 +152,13 @@ class OSGLOCController(
      */
     private suspend fun checkLocationPreconditions(
         activity: Activity,
-        options: OSGLOCLocationOptions,
+        options: IONGLOCLocationOptions,
         isSingleLocationRequest: Boolean
     ): Result<Unit> {
         // check timeout
         if (options.timeout <= 0) {
             return Result.failure(
-                OSGLOCException.OSGLOCInvalidTimeoutException(
+                IONGLOCException.IONGLOCInvalidTimeoutException(
                     message = "Timeout needs to be a positive value."
                 )
             )
@@ -226,19 +226,19 @@ class OSGLOCController(
      * Extension function to convert Location object into OSLocationResult object
      * @return OSLocationResult object
      */
-    private fun Location.toOSLocationResult(): OSGLOCLocationResult = OSGLOCLocationResult(
+    private fun Location.toOSLocationResult(): IONGLOCLocationResult = IONGLOCLocationResult(
         latitude = this.latitude,
         longitude = this.longitude,
         altitude = this.altitude,
         accuracy = this.accuracy,
-        altitudeAccuracy = if (OSGLOCBuildConfig.getAndroidSdkVersionCode() >= Build.VERSION_CODES.O) this.verticalAccuracyMeters else null,
+        altitudeAccuracy = if (IONGLOCBuildConfig.getAndroidSdkVersionCode() >= Build.VERSION_CODES.O) this.verticalAccuracyMeters else null,
         heading = this.bearing,
         speed = this.speed,
         timestamp = this.time
     )
 
     companion object {
-        private const val LOG_TAG = "OSGeolocationController"
+        private const val LOG_TAG = "IONGeolocationController"
     }
 
 }
