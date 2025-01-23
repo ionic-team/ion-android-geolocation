@@ -110,4 +110,4 @@ Common issues and solutions:
 
 ## Support
 
-- Report issues on our [Issue Tracker](https://github.com/ionic-team/IONGeolocationLib-Android/issues)
+- Report issues on our [Issue Tracker](https://github.com/ionic-team/ion-android-geolocation/issues)
