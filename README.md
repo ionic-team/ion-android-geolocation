@@ -1,6 +1,6 @@
-# IONGeolocationLib
+# ion-android-geolocation
 
-The `IONGeolocationLib-Android` is a library built using `Kotlin` that provides geolocation features for Android applications.
+The `ion-android-geolocation` is a library built using `Kotlin` that provides geolocation features for Android applications.
 
 The `IONGLOCController` class provides the main features of the Library, which are:
 - obtaining the location/position of the device a single time;
@@ -27,7 +27,7 @@ This library is used by the Geolocation Plugin for [OutSystems' Cordova Plugin](
 
 ## Usage
 
-In your app-level gradle file, import the `IONGeolocationLib` library like so:
+In your app-level gradle file, import the `ion-android-geolocation` library like so:
 
 ```
     dependencies {
@@ -106,7 +106,7 @@ Common issues and solutions:
 
 ## License
 
-`IONGeolocationLib` is available under the MIT license. See the [LICENSE](LICENSE) file for more info.
+`ion-android-geolocation` is available under the MIT license. See the [LICENSE](LICENSE) file for more info.
 
 ## Support
 
