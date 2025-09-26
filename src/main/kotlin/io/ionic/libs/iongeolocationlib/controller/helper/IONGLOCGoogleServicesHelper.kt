@@ -1,11 +1,13 @@
-package io.ionic.libs.iongeolocationlib.controller
+package io.ionic.libs.iongeolocationlib.controller.helper
 
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.location.Location
+import android.location.LocationManager
 import android.os.Looper
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
+import androidx.core.location.LocationManagerCompat
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.api.ResolvableApiException
@@ -21,30 +23,32 @@ import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
 import kotlinx.coroutines.tasks.await
 
 /**
- * Helper class that wraps the functionality of FusedLocationProviderClient
+ * Helper class that wraps the functionality of [FusedLocationProviderClient]
  */
-class IONGLOCServiceHelper(
+internal class IONGLOCGoogleServicesHelper(
     private val fusedLocationClient: FusedLocationProviderClient,
     private val activityLauncher: ActivityResultLauncher<IntentSenderRequest>
 ) {
     /**
      * Checks if location is on, as well as other conditions for retrieving device location
      * @param activity the Android activity from which the location request is being triggered
+     * @param locationManager the [LocationManager] to get additional location settings from
      * @param options location request options to use
-     * @param interval interval for requesting location updates; use 0 if meant to retrieve a single location
-     * @return true if location was checked and is on, false if it requires user to resolve issue (e.g. turn on location)
-     *          If false, the result is returned in `resolveLocationSettingsResultFlow`
+     * @param shouldTryResolve true if should try to resolve errors; false otherwise.
+     * Dictates whether [LocationSettingsResult.Resolving] or [LocationSettingsResult.ResolveSkipped] is returned.
+     * The exception being if location is off, in which case it will always be resolved.
+     * @return result of type [LocationSettingsResult]
      * @throws [IONGLOCException.IONGLOCSettingsException] if an error occurs that is not resolvable by user
      */
     internal suspend fun checkLocationSettings(
         activity: Activity,
+        locationManager: LocationManager,
         options: IONGLOCLocationOptions,
-        interval: Long
-    ): Boolean {
-
+        shouldTryResolve: Boolean
+    ): LocationSettingsResult {
         val request = LocationRequest.Builder(
             if (options.enableHighAccuracy) Priority.PRIORITY_HIGH_ACCURACY else Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-            interval
+            options.timeout
         ).build()
 
         val builder = LocationSettingsRequest.Builder()
@@ -53,37 +57,48 @@ class IONGLOCServiceHelper(
 
         try {
             client.checkLocationSettings(builder.build()).await()
-            return true
+            return LocationSettingsResult.Success
         } catch (e: ResolvableApiException) {
-
-            // Show the dialog to enable location by calling startResolutionForResult(),
-            // and then handle the result in onActivityResult
-            val resolutionBuilder: IntentSenderRequest.Builder =
-                IntentSenderRequest.Builder(e.resolution)
-            val resolution: IntentSenderRequest = resolutionBuilder.build()
-
-            activityLauncher.launch(resolution)
+            val locationOn = LocationManagerCompat.isLocationEnabled(locationManager)
+            if (!locationOn || shouldTryResolve) {
+                // Show the dialog to enable location by calling startResolutionForResult(),
+                // and then handle the result in onActivityResult
+                val resolutionBuilder: IntentSenderRequest.Builder =
+                    IntentSenderRequest.Builder(e.resolution)
+                val resolution: IntentSenderRequest = resolutionBuilder.build()
+                activityLauncher.launch(resolution)
+                return LocationSettingsResult.Resolving
+            } else {
+                return LocationSettingsResult.ResolveSkipped(e)
+            }
         } catch (e: Exception) {
-            throw IONGLOCException.IONGLOCSettingsException(
-                message = "There is an error with the location settings.",
-                cause = e
+            return LocationSettingsResult.UnresolvableError(
+                IONGLOCException.IONGLOCSettingsException(
+                    message = "There is an error with the location settings.",
+                    cause = e
+                )
             )
         }
-        return false
     }
 
     /**
      * Checks if the device has google play services, required to use [FusedLocationProviderClient]
      * @param activity the Android activity from which the location request is being triggered
-     * @return true if google play services is available, false otherwise
+     * @param shouldTryResolve true if should try to resolve errors; false otherwise.
+     * @return Success if google play services is available, Error otherwise
      */
-    internal fun checkGooglePlayServicesAvailable(activity: Activity): Result<Unit> {
+    internal fun checkGooglePlayServicesAvailable(
+        activity: Activity,
+        shouldTryResolve: Boolean
+    ): Result<Unit> {
         val googleApiAvailability = GoogleApiAvailability.getInstance()
         val status = googleApiAvailability.isGooglePlayServicesAvailable(activity)
 
         return if (status != ConnectionResult.SUCCESS) {
             if (googleApiAvailability.isUserResolvableError(status)) {
-                googleApiAvailability.getErrorDialog(activity, status, 1)?.show()
+                if (shouldTryResolve) {
+                    googleApiAvailability.getErrorDialog(activity, status, 1)?.show()
+                }
                 sendResultWithGoogleServicesException(
                     resolvable = true,
                     message = "Google Play Services error user resolvable."
@@ -107,7 +122,10 @@ class IONGLOCServiceHelper(
      * @return Result object with the exception to return
      *
      */
-    private fun sendResultWithGoogleServicesException(resolvable: Boolean, message: String): Result<Unit> {
+    private fun sendResultWithGoogleServicesException(
+        resolvable: Boolean,
+        message: String
+    ): Result<Unit> {
         return Result.failure(
             IONGLOCException.IONGLOCGoogleServicesException(
                 resolvable = resolvable,
@@ -174,5 +192,33 @@ class IONGLOCServiceHelper(
         locationCallback: LocationCallback
     ) {
         fusedLocationClient.removeLocationUpdates(locationCallback)
+    }
+
+    /**
+     * Result returned from checking Location Settings
+     */
+    internal sealed class LocationSettingsResult {
+        /**
+         * Location settings checked successfully - Able to request location via Google Play Services
+         */
+        data object Success : LocationSettingsResult()
+
+        /**
+         * Received an error from location settings that may be resolved by the user.
+         * Check `resolveLocationSettingsResultFlow` in `IONGLOCController` to receive this result
+         */
+        data object Resolving : LocationSettingsResult()
+
+        /**
+         * Received a resolvable error from location settings, but resolving was skipped.
+         * Check the docs on `checkLocationSettings` for more information
+         */
+        data class ResolveSkipped(val resolvableError: ResolvableApiException) :
+            LocationSettingsResult()
+
+        /**
+         * An unresolvable error occurred - Cannot request location via Google Play Services
+         */
+        data class UnresolvableError(val error: Exception) : LocationSettingsResult()
     }
 }

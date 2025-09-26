@@ -1,4 +1,4 @@
-package io.ionic.libs.iongeolocationlib.controller
+package io.ionic.libs.iongeolocationlib.controller.helper
 
 import android.os.Build
 

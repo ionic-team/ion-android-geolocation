@@ -8,10 +8,15 @@ import android.os.Build
 import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
+import androidx.core.location.LocationListenerCompat
 import androidx.core.location.LocationManagerCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import io.ionic.libs.iongeolocationlib.controller.helper.IONGLOCBuildConfig
+import io.ionic.libs.iongeolocationlib.controller.helper.IONGLOCFallbackHelper
+import io.ionic.libs.iongeolocationlib.controller.helper.IONGLOCGoogleServicesHelper
 import io.ionic.libs.iongeolocationlib.model.IONGLOCException
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
@@ -25,16 +30,28 @@ import kotlinx.coroutines.flow.first
  * Entry point in IONGeolocationLib-Android
  *
  */
-class IONGLOCController(
+class IONGLOCController internal constructor(
     fusedLocationClient: FusedLocationProviderClient,
+    private val locationManager: LocationManager,
     activityLauncher: ActivityResultLauncher<IntentSenderRequest>,
-    private val helper: IONGLOCServiceHelper = IONGLOCServiceHelper(
+    private val googleServicesHelper: IONGLOCGoogleServicesHelper = IONGLOCGoogleServicesHelper(
         fusedLocationClient,
         activityLauncher
-    )
+    ),
+    private val fallbackHelper: IONGLOCFallbackHelper = IONGLOCFallbackHelper(locationManager)
 ) {
+
+    constructor(
+        context: Context,
+        activityLauncher: ActivityResultLauncher<IntentSenderRequest>
+    ) : this(
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(context),
+        locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager,
+        activityLauncher = activityLauncher
+    )
+
     private lateinit var resolveLocationSettingsResultFlow: MutableSharedFlow<Result<Unit>>
-    private val locationCallbacks: MutableMap<String, LocationCallback> = mutableMapOf()
+    private val watchLocationHandlers: MutableMap<String, LocationHandler> = mutableMapOf()
     private val watchIdsBlacklist: MutableList<String> = mutableListOf()
 
     /**
@@ -51,12 +68,16 @@ class IONGLOCController(
         try {
             val checkResult: Result<Unit> =
                 checkLocationPreconditions(activity, options, isSingleLocationRequest = true)
-            return if (checkResult.isFailure) {
+            return if (checkResult.isFailure && !options.useLocationManagerFallback) {
                 Result.failure(
                     checkResult.exceptionOrNull() ?: NullPointerException()
                 )
             } else {
-                val location = helper.getCurrentLocation(options)
+                val location: Location = if (!options.useLocationManagerFallback) {
+                    googleServicesHelper.getCurrentLocation(options)
+                } else {
+                    fallbackHelper.getCurrentLocation()
+                }
                 return Result.success(location.toOSLocationResult())
             }
         } catch (exception: Exception) {
@@ -86,10 +107,10 @@ class IONGLOCController(
 
     /**
      * Checks if location services are enabled
-     * @param context Context to use when determining if location is enabled
+     * @return true if location is enabled, false otherwise
      */
-    fun areLocationServicesEnabled(context: Context): Boolean {
-        return LocationManagerCompat.isLocationEnabled(context.getSystemService(Context.LOCATION_SERVICE) as LocationManager)
+    fun areLocationServicesEnabled(): Boolean {
+        return LocationManagerCompat.isLocationEnabled(locationManager)
     }
 
     /**
@@ -104,27 +125,45 @@ class IONGLOCController(
         options: IONGLOCLocationOptions,
         watchId: String
     ): Flow<Result<List<IONGLOCLocationResult>>> = callbackFlow {
-
         try {
+            fun onNewLocations(locations: List<Location>) {
+                if (checkWatchInBlackList(watchId)) {
+                    return
+                }
+                val locations = locations.map { currentLocation ->
+                    currentLocation.toOSLocationResult()
+                }
+                trySend(Result.success(locations))
+            }
             val checkResult: Result<Unit> =
                 checkLocationPreconditions(activity, options, isSingleLocationRequest = true)
-            if (checkResult.isFailure) {
+            if (checkResult.isFailure && !options.useLocationManagerFallback) {
                 trySend(
                     Result.failure(checkResult.exceptionOrNull() ?: NullPointerException())
                 )
             } else {
-                locationCallbacks[watchId] = object : LocationCallback() {
-                    override fun onLocationResult(location: LocationResult) {
-                        if (checkWatchInBlackList(watchId)) {
-                            return
+                watchLocationHandlers[watchId] = if (!options.useLocationManagerFallback) {
+                    LocationHandler.Callback(object : LocationCallback() {
+                        override fun onLocationResult(location: LocationResult) {
+                            onNewLocations(location.locations)
                         }
-                        val locations = location.locations.map { currentLocation ->
-                            currentLocation.toOSLocationResult()
-                        }
-                        trySend(Result.success(locations))
+                    }).also {
+                        googleServicesHelper.requestLocationUpdates(options, it.callback)
                     }
-                }.also {
-                    helper.requestLocationUpdates(options, it)
+                } else {
+                    LocationHandler.Listener(object : LocationListenerCompat {
+                        override fun onLocationChanged(location: Location) {
+                            onNewLocations(listOf(location))
+                        }
+
+                        override fun onLocationChanged(locations: List<Location?>) {
+                            locations.filterNotNull().takeIf { it.isNotEmpty() }?.let {
+                                onNewLocations(it)
+                            }
+                        }
+                    }).also {
+                        fallbackHelper.requestLocationUpdates(options, it.listener)
+                    }
                 }
             }
         } catch (exception: Exception) {
@@ -163,23 +202,34 @@ class IONGLOCController(
                 )
             )
         }
-
-        val playServicesResult = helper.checkGooglePlayServicesAvailable(activity)
-        if (playServicesResult.isFailure) {
+        // if meant to use fallback, then resolvable errors from Play Services Location don't need to be addressed
+        val playServicesResult = googleServicesHelper.checkGooglePlayServicesAvailable(
+            activity, shouldTryResolve = !options.useLocationManagerFallback
+        )
+        if (playServicesResult.isFailure && !options.useLocationManagerFallback) {
             return Result.failure(playServicesResult.exceptionOrNull() ?: NullPointerException())
         }
 
         resolveLocationSettingsResultFlow = MutableSharedFlow()
-        val locationSettingsChecked = helper.checkLocationSettings(
+        val locationSettingsResult = googleServicesHelper.checkLocationSettings(
             activity,
-            options,
-            interval = if (isSingleLocationRequest) 0 else options.timeout
+            locationManager,
+            options.copy(timeout = if (isSingleLocationRequest) 0 else options.timeout),
+            shouldTryResolve = !options.useLocationManagerFallback
         )
 
-        return if (locationSettingsChecked) {
-            Result.success(Unit)
-        } else {
-            resolveLocationSettingsResultFlow.first()
+        return when (locationSettingsResult) {
+            IONGLOCGoogleServicesHelper.LocationSettingsResult.Success ->
+                Result.success(Unit)
+
+            IONGLOCGoogleServicesHelper.LocationSettingsResult.Resolving ->
+                resolveLocationSettingsResultFlow.first()
+
+            is IONGLOCGoogleServicesHelper.LocationSettingsResult.ResolveSkipped ->
+                Result.failure(locationSettingsResult.resolvableError)
+
+            is IONGLOCGoogleServicesHelper.LocationSettingsResult.UnresolvableError ->
+                Result.failure(locationSettingsResult.error)
         }
     }
 
@@ -190,9 +240,13 @@ class IONGLOCController(
      * @return true if watch was cleared, false if watch was not found
      */
     private fun clearWatch(id: String, addToBlackList: Boolean): Boolean {
-        val locationCallback = locationCallbacks.remove(key = id)
-        return if (locationCallback != null) {
-            helper.removeLocationUpdates(locationCallback)
+        val watchHandler = watchLocationHandlers.remove(key = id)
+        return if (watchHandler != null) {
+            if (watchHandler is LocationHandler.Callback) {
+                googleServicesHelper.removeLocationUpdates(watchHandler.callback)
+            } else if (watchHandler is LocationHandler.Listener) {
+                fallbackHelper.removeLocationUpdates(watchHandler.listener)
+            }
             true
         } else {
             if (addToBlackList) {
@@ -236,6 +290,11 @@ class IONGLOCController(
         speed = this.speed,
         timestamp = this.time
     )
+
+    sealed interface LocationHandler {
+        data class Callback(val callback: LocationCallback) : LocationHandler
+        data class Listener(val listener: LocationListenerCompat) : LocationHandler
+    }
 
     companion object {
         private const val LOG_TAG = "IONGeolocationController"
