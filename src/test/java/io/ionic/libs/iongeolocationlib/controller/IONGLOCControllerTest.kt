@@ -35,6 +35,7 @@ import io.ionic.libs.iongeolocationlib.model.IONGLOCException
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -48,10 +49,13 @@ import io.mockk.unmockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -382,42 +386,94 @@ class IONGLOCControllerTest {
 
     // region fallback tests
     @Test
-    fun `given location settings check fails but enableLocationManagerFallback=true, when getCurrentLocation is called, result is returned`() =
+    fun `given location settings check fails but enableLocationManagerFallback=true and there is cached data, when getCurrentLocation is called, result is returned`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
-            val error = RuntimeException()
-            coEvery { locationSettingsTask.await() } throws error
+            coEvery { locationSettingsTask.await() } throws RuntimeException()
+            val currentTime = System.currentTimeMillis()
+            every { locationManager.getLastKnownLocation(any()) } returns mockkLocation {
+                every { time } returns currentTime
+            }
 
             val result = sut.getCurrentPosition(mockk<Activity>(), locationOptionsWithFallback)
 
             assertTrue(result.isSuccess)
-            assertEquals(locationResult, result.getOrNull())
+            assertEquals(locationResult.copy(timestamp = currentTime), result.getOrNull())
+            coVerify(inverse = true) {
+                // only getLastKnownLocation, no location update requested
+                LocationManagerCompat.requestLocationUpdates(
+                    any(),
+                    any(),
+                    any<LocationRequestCompat>(),
+                    any(),
+                    any<Looper>()
+                )
+            }
         }
 
     @Test
-    fun `given location settings check fails with resolvableError but enableLocationManagerFallback=true, when getCurrentLocation is called, result is returned`() =
+    fun `given location settings check fails with resolvableError but enableLocationManagerFallback=true but cached data is older, when getCurrentLocation is called, result is returned`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
             givenResolvableApiException(Activity.RESULT_OK)
+            every { locationManager.getLastKnownLocation(any()) } returns mockkLocation {
+                every { time } returns System.currentTimeMillis() - (60_000L * 60_000L)
+            }
 
-            val result = sut.getCurrentPosition(mockk<Activity>(), locationOptionsWithFallback)
+            val deferred =
+                async { sut.getCurrentPosition(mockk<Activity>(), locationOptionsWithFallback) }
+            runCurrent() // to wait until locationListenerCompat is instantiated, can't use advanceUntilIdle because that would trigger the timeout
+            locationListenerCompat.onLocationChanged(mockAndroidLocation)
+            val result = deferred.await()
 
             assertTrue(result.isSuccess)
             assertEquals(locationResult, result.getOrNull())
+            coVerify {
+                // to confirm that listener has been removed by the end of getCurrentPosition
+                LocationManagerCompat.removeUpdates(locationManager, locationListenerCompat)
+            }
         }
 
     @Test
-    fun `given location settings check fails with resolvableError, location is off, and enableLocationManagerFallback=true, when getCurrentLocation is called, result is returned`() =
+    fun `given all preconditions pass and enableLocationManagerFallback=true, when getCurrentLocation is called, the fallback is not called`() =
+        runTest {
+            givenSuccessConditions() // to instantiate mocks
+
+            sut.getCurrentPosition(mockk<Activity>(), locationOptionsWithFallback)
+
+            coVerify(inverse = true) {
+                fallbackHelper.getCurrentLocation(any())
+            }
+        }
+
+    @Test
+    fun `given location settings check fails with resolvableError, location is off, and enableLocationManagerFallback=true, when getCurrentLocation is called, the fallback is not called`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
             givenResolvableApiException(Activity.RESULT_OK)
             every { LocationManagerCompat.isLocationEnabled(any()) } returns false
 
-            val result = sut.getCurrentPosition(mockk<Activity>(), locationOptionsWithFallback)
+            sut.getCurrentPosition(mockk<Activity>(), locationOptionsWithFallback)
 
-            assertTrue(result.isSuccess)
-            assertEquals(locationResult, result.getOrNull())
-            verify { activityResultLauncher.launch(any()) }
+            coVerify(inverse = true) {
+                fallbackHelper.getCurrentLocation(any())
+            }
+        }
+
+    @Test
+    fun `given fallback is being used but requestLocationUpdates does not notify listener, when getCurrentLocation is called, IONGLOCLocationRetrievalTimeoutException is returned`() =
+        runTest {
+            givenSuccessConditions() // to instantiate mocks
+            coEvery { locationSettingsTask.await() } throws RuntimeException()
+            every { LocationManagerCompat.isLocationEnabled(any()) } returns false
+
+            val deferred =
+                async { sut.getCurrentPosition(mockk<Activity>(), locationOptionsWithFallback) }
+            advanceTimeBy(locationOptionsWithFallback.timeout * 2)
+            val result = deferred.await()
+
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull() is IONGLOCException.IONGLOCLocationRetrievalTimeoutException)
         }
 
     @Test
@@ -427,7 +483,7 @@ class IONGLOCControllerTest {
             givenPlayServicesNotAvailableWithResolvableError()
 
             sut.addWatch(mockk<Activity>(), locationOptionsWithFallback, "1").test {
-                advanceUntilIdle()  // to wait until locationCallback is instantiated
+                advanceUntilIdle()  // to wait until locationListenerCompat is instantiated
                 emitLocationsFallback(listOf(mockAndroidLocation))
                 var result = awaitItem()
                 assertTrue(result.isSuccess)
@@ -452,20 +508,21 @@ class IONGLOCControllerTest {
         }
 
     @Test
-    fun `given watch was added via fallback, when clearWatch is called, true is returned`() = runTest {
-        val watchId = "id"
-        givenSuccessConditions()
-        givenPlayServicesNotAvailableWithUnResolvableError()
-        sut.addWatch(mockk<Activity>(), locationOptionsWithFallback, watchId).test {
-            advanceUntilIdle()  // to wait until locationCallback is instantiated
+    fun `given watch was added via fallback, when clearWatch is called, true is returned`() =
+        runTest {
+            val watchId = "id"
+            givenSuccessConditions()
+            givenPlayServicesNotAvailableWithUnResolvableError()
+            sut.addWatch(mockk<Activity>(), locationOptionsWithFallback, watchId).test {
+                advanceUntilIdle()  // to wait until locationListenerCompat is instantiated
 
-            val result = sut.clearWatch(watchId)
+                val result = sut.clearWatch(watchId)
 
-            assertTrue(result)
-            expectNoEvents()
+                assertTrue(result)
+                expectNoEvents()
+            }
+            verify { LocationManagerCompat.removeUpdates(any(), locationListenerCompat) }
         }
-        verify { LocationManagerCompat.removeUpdates(any(), locationListenerCompat) }
-    }
     // endregion fallback tests
 
     // region utils
@@ -522,6 +579,7 @@ class IONGLOCControllerTest {
             LocationManagerCompat.removeUpdates(any(), any())
         } just runs
         every { LocationManagerCompat.isLocationEnabled(any()) } returns true
+        every { locationManager.getLastKnownLocation(any()) } returns null
     }
 
     private fun givenPlayServicesNotAvailableWithResolvableError() {
@@ -583,8 +641,8 @@ class IONGLOCControllerTest {
         private const val DELAY = 3_000L
 
         private val locationOptions = IONGLOCLocationOptions(
-            timeout = 5000,
-            maximumAge = 3000,
+            timeout = 60_000,
+            maximumAge = 30_000,
             enableHighAccuracy = true,
             minUpdateInterval = 2000L,
             enableLocationManagerFallback = false

@@ -3,17 +3,16 @@ package io.ionic.libs.iongeolocationlib.controller.helper
 import android.annotation.SuppressLint
 import android.location.Location
 import android.location.LocationManager
-import android.os.CancellationSignal
 import android.os.Looper
 import androidx.core.location.LocationListenerCompat
 import androidx.core.location.LocationManagerCompat
 import androidx.core.location.LocationRequestCompat
 import io.ionic.libs.iongeolocationlib.model.IONGLOCException
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
-import java.util.concurrent.Executors
+import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 /**
  * Helper class that wraps the functionality of Android's [LocationManager].
@@ -24,30 +23,58 @@ internal class IONGLOCFallbackHelper(
 ) {
     /**
      * Obtains a fresh device location.
-     * This fallback method does not receive options because Android API does not allow to configure specific options.
+     * @param options location request options to use
      * @return Location object representing the location
      */
     @SuppressLint("MissingPermission")
-    internal suspend fun getCurrentLocation(): Location =
-        suspendCancellableCoroutine { continuation ->
-            val cancellationSignal: CancellationSignal? = null
-            LocationManagerCompat.getCurrentLocation(
-                locationManager,
-                LocationManager.GPS_PROVIDER,
-                cancellationSignal,
-                Executors.newSingleThreadExecutor()
-            ) { location ->
-                if (location != null) {
+    internal suspend fun getCurrentLocation(options: IONGLOCLocationOptions): Location = try {
+        withTimeout(options.timeout) {
+            suspendCancellableCoroutine { continuation ->
+                val cachedLocation =
+                    locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                if (cachedLocation != null && (System.currentTimeMillis() - cachedLocation.time) < options.maximumAge) {
+                    continuation.resume(cachedLocation)
+                    return@suspendCancellableCoroutine
+                }
+
+                // cached location inexistent or too old - must make a fresh location request
+                val locationRequest = LocationRequestCompat.Builder(0).apply {
+                    setQuality(if (options.enableHighAccuracy) LocationRequestCompat.QUALITY_HIGH_ACCURACY else LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY)
+                }.build()
+                var locationListener: LocationListenerCompat? = null
+                locationListener = LocationListenerCompat { location ->
+                    locationListener?.let {
+                        // remove listener to only allow one location update
+                        removeLocationUpdates(it)
+                        locationListener = null
+                    }
                     continuation.resume(location)
-                } else {
-                    continuation.resumeWithException(
-                        IONGLOCException.IONGLOCLocationRetrievalTimeoutException(
-                            message = "Location request timed out"
-                        )
+                }
+                locationListener?.let {
+                    LocationManagerCompat.requestLocationUpdates(
+                        locationManager,
+                        LocationManager.GPS_PROVIDER,
+                        locationRequest,
+                        it,
+                        Looper.getMainLooper()
                     )
+                }
+
+                // If coroutine is cancelled (due to timeout or external cancel), remove listener
+                continuation.invokeOnCancellation {
+                    locationListener?.let {
+                        removeLocationUpdates(it)
+                        locationListener = null
+                    }
                 }
             }
         }
+    } catch (e: TimeoutCancellationException) {
+        throw IONGLOCException.IONGLOCLocationRetrievalTimeoutException(
+            message = "Location request timed out",
+            cause = e
+        )
+    }
 
     /**
      * Requests updates of device location.
@@ -85,6 +112,7 @@ internal class IONGLOCFallbackHelper(
      *
      * @param locationListener the location listener to be removed
      */
+    @SuppressLint("MissingPermission")
     internal fun removeLocationUpdates(
         locationListener: LocationListenerCompat
     ) {

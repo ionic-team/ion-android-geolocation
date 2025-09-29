@@ -73,11 +73,12 @@ class IONGLOCController internal constructor(
                     checkResult.exceptionOrNull() ?: NullPointerException()
                 )
             } else {
-                val location: Location = if (!options.enableLocationManagerFallback) {
-                    googleServicesHelper.getCurrentLocation(options)
-                } else {
-                    fallbackHelper.getCurrentLocation()
-                }
+                val location: Location =
+                    if (checkResult.isFailure && options.enableLocationManagerFallback) {
+                        fallbackHelper.getCurrentLocation(options)
+                    } else {
+                        googleServicesHelper.getCurrentLocation(options)
+                    }
                 return Result.success(location.toOSLocationResult())
             }
         } catch (exception: Exception) {
@@ -143,7 +144,11 @@ class IONGLOCController internal constructor(
                     Result.failure(checkResult.exceptionOrNull() ?: NullPointerException())
                 )
             } else {
-                requestLocationUpdates(watchId, options) { onNewLocations(it) }
+                requestLocationUpdates(
+                    watchId,
+                    options,
+                    useFallback = checkResult.isFailure && options.enableLocationManagerFallback
+                ) { onNewLocations(it) }
             }
         } catch (exception: Exception) {
             Log.d(LOG_TAG, "Error requesting location updates: ${exception.message}")
@@ -185,7 +190,7 @@ class IONGLOCController internal constructor(
         val playServicesResult = googleServicesHelper.checkGooglePlayServicesAvailable(
             activity, shouldTryResolve = !options.enableLocationManagerFallback
         )
-        if (playServicesResult.isFailure && !options.enableLocationManagerFallback) {
+        if (playServicesResult.isFailure) {
             return Result.failure(playServicesResult.exceptionOrNull() ?: NullPointerException())
         }
 
@@ -204,14 +209,16 @@ class IONGLOCController internal constructor(
      * Request location updates using the appropriate helper class
      * @param watchId a unique id to associate with the location update request (so that it may be cleared later)
      * @param options location request options to use
+     * @param useFallback whether or not the fallback should be used
      * @param onNewLocations lambda to notify of new location requests
      */
     private fun requestLocationUpdates(
         watchId: String,
         options: IONGLOCLocationOptions,
+        useFallback: Boolean,
         onNewLocations: (List<Location>) -> Unit
     ) {
-        watchLocationHandlers[watchId] = if (!options.enableLocationManagerFallback) {
+        watchLocationHandlers[watchId] = if (!useFallback) {
             LocationHandler.Callback(object : LocationCallback() {
                 override fun onLocationResult(location: LocationResult) {
                     onNewLocations(location.locations)
