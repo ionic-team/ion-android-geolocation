@@ -135,6 +135,7 @@ class IONGLOCController internal constructor(
                 }
                 trySend(Result.success(locationResultList))
             }
+
             val checkResult: Result<Unit> =
                 checkLocationPreconditions(activity, options, isSingleLocationRequest = true)
             if (checkResult.isFailure && !options.enableLocationManagerFallback) {
@@ -142,29 +143,7 @@ class IONGLOCController internal constructor(
                     Result.failure(checkResult.exceptionOrNull() ?: NullPointerException())
                 )
             } else {
-                watchLocationHandlers[watchId] = if (!options.enableLocationManagerFallback) {
-                    LocationHandler.Callback(object : LocationCallback() {
-                        override fun onLocationResult(location: LocationResult) {
-                            onNewLocations(location.locations)
-                        }
-                    }).also {
-                        googleServicesHelper.requestLocationUpdates(options, it.callback)
-                    }
-                } else {
-                    LocationHandler.Listener(object : LocationListenerCompat {
-                        override fun onLocationChanged(location: Location) {
-                            onNewLocations(listOf(location))
-                        }
-
-                        override fun onLocationChanged(locations: List<Location?>) {
-                            locations.filterNotNull().takeIf { it.isNotEmpty() }?.let {
-                                onNewLocations(it)
-                            }
-                        }
-                    }).also {
-                        fallbackHelper.requestLocationUpdates(options, it.listener)
-                    }
-                }
+                requestLocationUpdates(watchId, options) { onNewLocations(it) }
             }
         } catch (exception: Exception) {
             Log.d(LOG_TAG, "Error requesting location updates: ${exception.message}")
@@ -218,18 +197,42 @@ class IONGLOCController internal constructor(
             shouldTryResolve = !options.enableLocationManagerFallback
         )
 
-        return when (locationSettingsResult) {
-            IONGLOCGoogleServicesHelper.LocationSettingsResult.Success ->
-                Result.success(Unit)
+        return locationSettingsResult.toKotlinResult()
+    }
 
-            IONGLOCGoogleServicesHelper.LocationSettingsResult.Resolving ->
-                resolveLocationSettingsResultFlow.first()
+    /**
+     * Request location updates using the appropriate helper class
+     * @param watchId a unique id to associate with the location update request (so that it may be cleared later)
+     * @param options location request options to use
+     * @param onNewLocations lambda to notify of new location requests
+     */
+    private fun requestLocationUpdates(
+        watchId: String,
+        options: IONGLOCLocationOptions,
+        onNewLocations: (List<Location>) -> Unit
+    ) {
+        watchLocationHandlers[watchId] = if (!options.enableLocationManagerFallback) {
+            LocationHandler.Callback(object : LocationCallback() {
+                override fun onLocationResult(location: LocationResult) {
+                    onNewLocations(location.locations)
+                }
+            }).also {
+                googleServicesHelper.requestLocationUpdates(options, it.callback)
+            }
+        } else {
+            LocationHandler.Listener(object : LocationListenerCompat {
+                override fun onLocationChanged(location: Location) {
+                    onNewLocations(listOf(location))
+                }
 
-            is IONGLOCGoogleServicesHelper.LocationSettingsResult.ResolveSkipped ->
-                Result.failure(locationSettingsResult.resolvableError)
-
-            is IONGLOCGoogleServicesHelper.LocationSettingsResult.UnresolvableError ->
-                Result.failure(locationSettingsResult.error)
+                override fun onLocationChanged(locations: List<Location?>) {
+                    locations.filterNotNull().takeIf { it.isNotEmpty() }?.let {
+                        onNewLocations(it)
+                    }
+                }
+            }).also {
+                fallbackHelper.requestLocationUpdates(options, it.listener)
+            }
         }
     }
 
@@ -290,6 +293,27 @@ class IONGLOCController internal constructor(
         speed = this.speed,
         timestamp = this.time
     )
+
+    /**
+     * Extension function to convert the [IONGLOCGoogleServicesHelper.LocationSettingsResult].
+     * Depending on the result value, it may suspend to await a flow
+     * @return a regular Kotlin [Result], which may be either Success or Error.
+     */
+    private suspend fun IONGLOCGoogleServicesHelper.LocationSettingsResult.toKotlinResult(): Result<Unit> {
+        return when (this) {
+            IONGLOCGoogleServicesHelper.LocationSettingsResult.Success ->
+                Result.success(Unit)
+
+            IONGLOCGoogleServicesHelper.LocationSettingsResult.Resolving ->
+                resolveLocationSettingsResultFlow.first()
+
+            is IONGLOCGoogleServicesHelper.LocationSettingsResult.ResolveSkipped ->
+                Result.failure(resolvableError)
+
+            is IONGLOCGoogleServicesHelper.LocationSettingsResult.UnresolvableError ->
+                Result.failure(error)
+        }
+    }
 
     sealed interface LocationHandler {
         data class Callback(val callback: LocationCallback) : LocationHandler
