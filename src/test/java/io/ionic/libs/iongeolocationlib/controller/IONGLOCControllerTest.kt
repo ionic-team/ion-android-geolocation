@@ -382,7 +382,7 @@ class IONGLOCControllerTest {
 
     // region fallback tests
     @Test
-    fun `given location settings check fails but useLocationManagerFallback=true, when getCurrentLocation is called, result is returned`() =
+    fun `given location settings check fails but enableLocationManagerFallback=true, when getCurrentLocation is called, result is returned`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
             val error = RuntimeException()
@@ -395,7 +395,7 @@ class IONGLOCControllerTest {
         }
 
     @Test
-    fun `given location settings check fails with resolvableError but useLocationManagerFallback=true, when getCurrentLocation is called, result is returned`() =
+    fun `given location settings check fails with resolvableError but enableLocationManagerFallback=true, when getCurrentLocation is called, result is returned`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
             givenResolvableApiException(Activity.RESULT_OK)
@@ -407,7 +407,7 @@ class IONGLOCControllerTest {
         }
 
     @Test
-    fun `given location settings check fails with resolvableError, location is off, and useLocationManagerFallback=true, when getCurrentLocation is called, result is returned`() =
+    fun `given location settings check fails with resolvableError, location is off, and enableLocationManagerFallback=true, when getCurrentLocation is called, result is returned`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
             givenResolvableApiException(Activity.RESULT_OK)
@@ -421,7 +421,7 @@ class IONGLOCControllerTest {
         }
 
     @Test
-    fun `given play services not available but useLocationManagerFallback=true, when addWatch is called, locations returned in flow`() =
+    fun `given play services not available but enableLocationManagerFallback=true, when addWatch is called, locations returned in flow`() =
         runTest {
             givenSuccessConditions()
             givenPlayServicesNotAvailableWithResolvableError()
@@ -587,11 +587,11 @@ class IONGLOCControllerTest {
             maximumAge = 3000,
             enableHighAccuracy = true,
             minUpdateInterval = 2000L,
-            useLocationManagerFallback = false
+            enableLocationManagerFallback = false
         )
 
         private val locationOptionsWithFallback =
-            locationOptions.copy(useLocationManagerFallback = true)
+            locationOptions.copy(enableLocationManagerFallback = true)
 
         private val locationResult = IONGLOCLocationResult(
             latitude = 1.0,

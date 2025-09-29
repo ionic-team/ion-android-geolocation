@@ -68,12 +68,12 @@ class IONGLOCController internal constructor(
         try {
             val checkResult: Result<Unit> =
                 checkLocationPreconditions(activity, options, isSingleLocationRequest = true)
-            return if (checkResult.isFailure && !options.useLocationManagerFallback) {
+            return if (checkResult.isFailure && !options.enableLocationManagerFallback) {
                 Result.failure(
                     checkResult.exceptionOrNull() ?: NullPointerException()
                 )
             } else {
-                val location: Location = if (!options.useLocationManagerFallback) {
+                val location: Location = if (!options.enableLocationManagerFallback) {
                     googleServicesHelper.getCurrentLocation(options)
                 } else {
                     fallbackHelper.getCurrentLocation()
@@ -130,19 +130,19 @@ class IONGLOCController internal constructor(
                 if (checkWatchInBlackList(watchId)) {
                     return
                 }
-                val locations = locations.map { currentLocation ->
+                val locationResultList = locations.map { currentLocation ->
                     currentLocation.toOSLocationResult()
                 }
-                trySend(Result.success(locations))
+                trySend(Result.success(locationResultList))
             }
             val checkResult: Result<Unit> =
                 checkLocationPreconditions(activity, options, isSingleLocationRequest = true)
-            if (checkResult.isFailure && !options.useLocationManagerFallback) {
+            if (checkResult.isFailure && !options.enableLocationManagerFallback) {
                 trySend(
                     Result.failure(checkResult.exceptionOrNull() ?: NullPointerException())
                 )
             } else {
-                watchLocationHandlers[watchId] = if (!options.useLocationManagerFallback) {
+                watchLocationHandlers[watchId] = if (!options.enableLocationManagerFallback) {
                     LocationHandler.Callback(object : LocationCallback() {
                         override fun onLocationResult(location: LocationResult) {
                             onNewLocations(location.locations)
@@ -204,9 +204,9 @@ class IONGLOCController internal constructor(
         }
         // if meant to use fallback, then resolvable errors from Play Services Location don't need to be addressed
         val playServicesResult = googleServicesHelper.checkGooglePlayServicesAvailable(
-            activity, shouldTryResolve = !options.useLocationManagerFallback
+            activity, shouldTryResolve = !options.enableLocationManagerFallback
         )
-        if (playServicesResult.isFailure && !options.useLocationManagerFallback) {
+        if (playServicesResult.isFailure && !options.enableLocationManagerFallback) {
             return Result.failure(playServicesResult.exceptionOrNull() ?: NullPointerException())
         }
 
@@ -215,7 +215,7 @@ class IONGLOCController internal constructor(
             activity,
             locationManager,
             options.copy(timeout = if (isSingleLocationRequest) 0 else options.timeout),
-            shouldTryResolve = !options.useLocationManagerFallback
+            shouldTryResolve = !options.enableLocationManagerFallback
         )
 
         return when (locationSettingsResult) {

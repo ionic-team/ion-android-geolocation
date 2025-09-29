@@ -7,6 +7,6 @@ data class IONGLOCLocationOptions(
     val timeout: Long,
     val maximumAge: Long,
     val enableHighAccuracy: Boolean,
-    val useLocationManagerFallback: Boolean,
+    val enableLocationManagerFallback: Boolean,
     val minUpdateInterval: Long? = null,
 )
