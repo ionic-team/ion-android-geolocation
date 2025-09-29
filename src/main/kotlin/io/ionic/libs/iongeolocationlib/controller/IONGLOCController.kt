@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.location.Location
 import android.location.LocationManager
+import android.net.ConnectivityManager
 import android.os.Build
 import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
@@ -33,12 +34,15 @@ import kotlinx.coroutines.flow.first
 class IONGLOCController internal constructor(
     fusedLocationClient: FusedLocationProviderClient,
     private val locationManager: LocationManager,
+    connectivityManager: ConnectivityManager,
     activityLauncher: ActivityResultLauncher<IntentSenderRequest>,
     private val googleServicesHelper: IONGLOCGoogleServicesHelper = IONGLOCGoogleServicesHelper(
         fusedLocationClient,
         activityLauncher
     ),
-    private val fallbackHelper: IONGLOCFallbackHelper = IONGLOCFallbackHelper(locationManager)
+    private val fallbackHelper: IONGLOCFallbackHelper = IONGLOCFallbackHelper(
+        locationManager, connectivityManager
+    )
 ) {
 
     constructor(
@@ -47,6 +51,7 @@ class IONGLOCController internal constructor(
     ) : this(
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(context),
         locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager,
+        connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager,
         activityLauncher = activityLauncher
     )
 

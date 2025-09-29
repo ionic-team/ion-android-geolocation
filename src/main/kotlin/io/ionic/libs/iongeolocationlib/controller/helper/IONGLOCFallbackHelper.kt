@@ -3,10 +3,14 @@ package io.ionic.libs.iongeolocationlib.controller.helper
 import android.annotation.SuppressLint
 import android.location.Location
 import android.location.LocationManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Build
 import android.os.Looper
 import androidx.core.location.LocationListenerCompat
 import androidx.core.location.LocationManagerCompat
 import androidx.core.location.LocationRequestCompat
+import androidx.core.net.ConnectivityManagerCompat
 import io.ionic.libs.iongeolocationlib.model.IONGLOCException
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
 import kotlinx.coroutines.TimeoutCancellationException
@@ -19,7 +23,8 @@ import kotlin.coroutines.resume
  * Meant to be used only as a fallback in case we cannot used the Fused Location Provider from Play Services.
  */
 internal class IONGLOCFallbackHelper(
-    private val locationManager: LocationManager
+    private val locationManager: LocationManager,
+    private val connectivityManager: ConnectivityManager
 ) {
     /**
      * Obtains a fresh device location.
@@ -39,7 +44,7 @@ internal class IONGLOCFallbackHelper(
 
                 // cached location inexistent or too old - must make a fresh location request
                 val locationRequest = LocationRequestCompat.Builder(0).apply {
-                    setQuality(if (options.enableHighAccuracy) LocationRequestCompat.QUALITY_HIGH_ACCURACY else LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY)
+                    setQuality(getQualityToUse(options))
                 }.build()
                 var locationListener: LocationListenerCompat? = null
                 locationListener = LocationListenerCompat { location ->
@@ -53,7 +58,7 @@ internal class IONGLOCFallbackHelper(
                 locationListener?.let {
                     LocationManagerCompat.requestLocationUpdates(
                         locationManager,
-                        LocationManager.GPS_PROVIDER,
+                        getProviderToUse(),
                         locationRequest,
                         it,
                         Looper.getMainLooper()
@@ -90,7 +95,7 @@ internal class IONGLOCFallbackHelper(
     ) {
         val locationRequest = LocationRequestCompat.Builder(options.timeout).apply {
             // note: setMaxUpdateAgeMillis unavailable in this API, so options.maximumAge is not used
-            setQuality(if (options.enableHighAccuracy) LocationRequestCompat.QUALITY_HIGH_ACCURACY else LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY)
+            setQuality(getQualityToUse(options))
             if (options.minUpdateInterval != null) {
                 setMinUpdateIntervalMillis(options.minUpdateInterval)
             }
@@ -98,7 +103,7 @@ internal class IONGLOCFallbackHelper(
 
         LocationManagerCompat.requestLocationUpdates(
             locationManager,
-            LocationManager.GPS_PROVIDER,
+            getProviderToUse(),
             locationRequest,
             locationListener,
             Looper.getMainLooper()
@@ -118,4 +123,43 @@ internal class IONGLOCFallbackHelper(
     ) {
         LocationManagerCompat.removeUpdates(locationManager, locationListener)
     }
+
+    /**
+     * Get the desired location request quality to use based on the provided options and providers.
+     * If there's no network provider, the request will go one quality level down, to avoid reducing timeouts from using only GPS.
+     * @param options location request options to use
+     * @return an integer indicating the desired quality for location request
+     */
+    private fun getQualityToUse(options: IONGLOCLocationOptions): Int {
+        val networkEnabled = hasNetworkEnabledForLocationPurposes()
+        return when {
+            options.enableHighAccuracy && networkEnabled -> LocationRequestCompat.QUALITY_HIGH_ACCURACY
+            options.enableHighAccuracy || networkEnabled -> LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY
+            else -> LocationRequestCompat.QUALITY_LOW_POWER
+        }
+    }
+
+    /**
+     * @return the location provider to use
+     */
+    private fun getProviderToUse() =
+        if (hasNetworkEnabledForLocationPurposes() && IONGLOCBuildConfig.getAndroidSdkVersionCode() >= Build.VERSION_CODES.S) {
+            LocationManager.FUSED_PROVIDER
+        } else {
+            LocationManager.GPS_PROVIDER
+        }
+
+    /**
+     * @return true if there's any active network capability that could be used to improve location, false otherwise.
+     */
+    private fun hasNetworkEnabledForLocationPurposes() =
+        connectivityManager.activeNetwork?.let { network ->
+            connectivityManager.getNetworkCapabilities(network)?.let { capabilities ->
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) ||
+                        (IONGLOCBuildConfig.getAndroidSdkVersionCode() >= Build.VERSION_CODES.O &&
+                                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI_AWARE))
+            }
+        } ?: false
 }

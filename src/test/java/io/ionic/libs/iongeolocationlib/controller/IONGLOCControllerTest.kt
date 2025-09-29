@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.PendingIntent
 import android.location.Location
 import android.location.LocationManager
+import android.net.ConnectivityManager
 import android.os.Build
 import android.os.CancellationSignal
 import android.os.Looper
@@ -73,10 +74,11 @@ class IONGLOCControllerTest {
     private val googleApiAvailability = mockk<GoogleApiAvailability>()
     private val locationSettingsClient = mockk<SettingsClient>()
     private val locationManager = mockk<LocationManager>()
+    private val connectivityManager = mockk<ConnectivityManager>()
     private val googleServicesHelper = spyk(
         IONGLOCGoogleServicesHelper(fusedLocationProviderClient, activityResultLauncher)
     )
-    private val fallbackHelper = spyk(IONGLOCFallbackHelper(locationManager))
+    private val fallbackHelper = spyk(IONGLOCFallbackHelper(locationManager, connectivityManager))
 
     private val mockAndroidLocation = mockkLocation()
     private val locationSettingsTask = mockk<Task<LocationSettingsResponse>>(relaxed = true)
@@ -106,6 +108,7 @@ class IONGLOCControllerTest {
         sut = IONGLOCController(
             fusedLocationClient = fusedLocationProviderClient,
             locationManager = locationManager,
+            connectivityManager = connectivityManager,
             activityLauncher = activityResultLauncher,
             googleServicesHelper = googleServicesHelper,
             fallbackHelper = fallbackHelper
@@ -432,6 +435,23 @@ class IONGLOCControllerTest {
                 // to confirm that listener has been removed by the end of getCurrentPosition
                 LocationManagerCompat.removeUpdates(locationManager, locationListenerCompat)
             }
+            // to confirm that the correct quality was passed, based on the fact that
+            // 1. there is no network provider and 2. options#enableHighAccuracy=true
+            val slot = slot<LocationRequestCompat>()
+            coVerify {
+                // only getLastKnownLocation, no location update requested
+                LocationManagerCompat.requestLocationUpdates(
+                    any(),
+                    any(),
+                    capture(slot),
+                    any(),
+                    any<Looper>()
+                )
+            }
+            assertEquals(
+                LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY,
+                slot.captured.quality
+            )
         }
 
     @Test
@@ -552,6 +572,9 @@ class IONGLOCControllerTest {
         }
         every { fusedLocationProviderClient.removeLocationUpdates(any<LocationCallback>()) } returns voidTask
 
+        every { connectivityManager.activeNetwork } returns null
+        every { LocationManagerCompat.isLocationEnabled(any()) } returns true
+        every { locationManager.getLastKnownLocation(any()) } returns null
         val consumerSlot = slot<Consumer<Location>>()
         every {
             LocationManagerCompat.getCurrentLocation(
@@ -578,8 +601,6 @@ class IONGLOCControllerTest {
         every {
             LocationManagerCompat.removeUpdates(any(), any())
         } just runs
-        every { LocationManagerCompat.isLocationEnabled(any()) } returns true
-        every { locationManager.getLastKnownLocation(any()) } returns null
     }
 
     private fun givenPlayServicesNotAvailableWithResolvableError() {
