@@ -20,4 +20,7 @@ sealed class IONGLOCException(message: String, cause: Throwable?) : Exception(me
     class IONGLOCLocationRetrievalTimeoutException(
         message: String, cause: Throwable? = null
     ) : IONGLOCException(message, cause)
+    class IONGLOCLocationAndNetworkDisabledException(
+        message: String, cause: Throwable? = null
+    ) : IONGLOCException(message, cause)
 }

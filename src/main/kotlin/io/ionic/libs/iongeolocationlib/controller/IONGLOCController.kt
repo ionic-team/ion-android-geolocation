@@ -38,6 +38,8 @@ class IONGLOCController internal constructor(
     connectivityManager: ConnectivityManager,
     activityLauncher: ActivityResultLauncher<IntentSenderRequest>,
     private val googleServicesHelper: IONGLOCGoogleServicesHelper = IONGLOCGoogleServicesHelper(
+        locationManager,
+        connectivityManager,
         fusedLocationClient,
         activityLauncher
     ),
@@ -74,7 +76,7 @@ class IONGLOCController internal constructor(
         try {
             val checkResult: Result<Unit> =
                 checkLocationPreconditions(activity, options, isSingleLocationRequest = true)
-            return if (checkResult.isFailure && !options.enableLocationManagerFallback) {
+            return if (checkResult.shouldNotProceed(options)) {
                 Result.failure(
                     checkResult.exceptionOrNull() ?: NullPointerException()
                 )
@@ -144,8 +146,8 @@ class IONGLOCController internal constructor(
             }
 
             val checkResult: Result<Unit> =
-                checkLocationPreconditions(activity, options, isSingleLocationRequest = true)
-            if (checkResult.isFailure && !options.enableLocationManagerFallback) {
+                checkLocationPreconditions(activity, options, isSingleLocationRequest = false)
+            if (checkResult.shouldNotProceed(options)) {
                 trySend(
                     Result.failure(checkResult.exceptionOrNull() ?: NullPointerException())
                 )
@@ -203,7 +205,6 @@ class IONGLOCController internal constructor(
         resolveLocationSettingsResultFlow = MutableSharedFlow()
         val locationSettingsResult = googleServicesHelper.checkLocationSettings(
             activity,
-            locationManager,
             options.copy(timeout = if (isSingleLocationRequest) 0 else options.timeout),
             shouldTryResolve = !options.enableLocationManagerFallback
         )
@@ -305,6 +306,14 @@ class IONGLOCController internal constructor(
             is LocationSettingsResult.UnresolvableError -> Result.failure(error)
         }
     }
+
+    /**
+     * @return true if the the settings result is such that the location request must fail
+     *  (even if enableLocationManagerFallback=true), or false otherwise
+     */
+    private fun Result<Unit>.shouldNotProceed(options: IONGLOCLocationOptions): Boolean =
+        isFailure && (!options.enableLocationManagerFallback ||
+                exceptionOrNull() is IONGLOCException.IONGLOCLocationAndNetworkDisabledException)
 
     companion object {
         private const val LOG_TAG = "IONGeolocationController"

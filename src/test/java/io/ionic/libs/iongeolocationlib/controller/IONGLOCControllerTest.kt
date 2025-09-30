@@ -18,6 +18,7 @@ import androidx.core.util.Consumer
 import app.cash.turbine.test
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
+import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.common.api.Status
 import com.google.android.gms.location.CurrentLocationRequest
@@ -76,7 +77,12 @@ class IONGLOCControllerTest {
     private val locationManager = mockk<LocationManager>()
     private val connectivityManager = mockk<ConnectivityManager>()
     private val googleServicesHelper = spyk(
-        IONGLOCGoogleServicesHelper(fusedLocationProviderClient, activityResultLauncher)
+        IONGLOCGoogleServicesHelper(
+            locationManager,
+            connectivityManager,
+            fusedLocationProviderClient,
+            activityResultLauncher
+        )
     )
     private val fallbackHelper = spyk(IONGLOCFallbackHelper(locationManager, connectivityManager))
 
@@ -494,6 +500,21 @@ class IONGLOCControllerTest {
 
             assertTrue(result.isFailure)
             assertTrue(result.exceptionOrNull() is IONGLOCException.IONGLOCLocationRetrievalTimeoutException)
+        }
+
+    @Test
+    fun `given SETTINGS_CHANGE_UNAVAILABLE error and network+location disabled and enableLocationManagerFallback=true, when getCurrentLocation is called, IONGLOCLocationAndNetworkDisabledException is returned`() =
+        runTest {
+            givenSuccessConditions() // to instantiate mocks
+            coEvery { locationSettingsTask.await() } throws mockk<ApiException> {
+                every { message } returns "8502: SETTINGS_CHANGE_UNAVAILABLE"
+            }
+            every { LocationManagerCompat.isLocationEnabled(any()) } returns false
+
+            val result = sut.getCurrentPosition(mockk<Activity>(), locationOptionsWithFallback)
+
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull() is IONGLOCException.IONGLOCLocationAndNetworkDisabledException)
         }
 
     @Test

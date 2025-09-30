@@ -4,12 +4,14 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.location.Location
 import android.location.LocationManager
+import android.net.ConnectivityManager
 import android.os.Looper
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.core.location.LocationManagerCompat
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
+import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.CurrentLocationRequest
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -27,6 +29,8 @@ import kotlinx.coroutines.tasks.await
  * Helper class that wraps the functionality of [FusedLocationProviderClient]
  */
 internal class IONGLOCGoogleServicesHelper(
+    private val locationManager: LocationManager,
+    private val connectivityManager: ConnectivityManager,
     private val fusedLocationClient: FusedLocationProviderClient,
     private val activityLauncher: ActivityResultLauncher<IntentSenderRequest>
 ) {
@@ -43,7 +47,6 @@ internal class IONGLOCGoogleServicesHelper(
      */
     internal suspend fun checkLocationSettings(
         activity: Activity,
-        locationManager: LocationManager,
         options: IONGLOCLocationOptions,
         shouldTryResolve: Boolean
     ): LocationSettingsResult {
@@ -73,12 +76,7 @@ internal class IONGLOCGoogleServicesHelper(
                 return LocationSettingsResult.ResolveSkipped(e)
             }
         } catch (e: Exception) {
-            return LocationSettingsResult.UnresolvableError(
-                IONGLOCException.IONGLOCSettingsException(
-                    message = "There is an error with the location settings.",
-                    cause = e
-                )
-            )
+            return LocationSettingsResult.UnresolvableError(e.mapLocationSettingsError())
         }
     }
 
@@ -173,5 +171,25 @@ internal class IONGLOCGoogleServicesHelper(
         locationCallback: LocationCallback
     ) {
         fusedLocationClient.removeLocationUpdates(locationCallback)
+    }
+
+    /**
+     * Map the Location Settings Exception to an exception from this native library.
+     * @return a [IONGLOCException]
+     */
+    private fun Exception.mapLocationSettingsError(): IONGLOCException = if (this is ApiException &&
+        message?.contains("SETTINGS_CHANGE_UNAVAILABLE") == true
+        && !LocationManagerCompat.isLocationEnabled(locationManager)
+        && !hasNetworkEnabledForLocationPurposes(locationManager, connectivityManager)
+    ) {
+        IONGLOCException.IONGLOCLocationAndNetworkDisabledException(
+            message = "Unable to retrieve location because device has both Network and Location turned off.",
+            cause = this
+        )
+    } else {
+        IONGLOCException.IONGLOCSettingsException(
+            message = "There is an error with the location settings.",
+            cause = this
+        )
     }
 }
