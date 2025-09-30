@@ -10,7 +10,6 @@ import android.os.Looper
 import androidx.core.location.LocationListenerCompat
 import androidx.core.location.LocationManagerCompat
 import androidx.core.location.LocationRequestCompat
-import androidx.core.net.ConnectivityManagerCompat
 import io.ionic.libs.iongeolocationlib.model.IONGLOCException
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
 import kotlinx.coroutines.TimeoutCancellationException
@@ -35,10 +34,8 @@ internal class IONGLOCFallbackHelper(
     internal suspend fun getCurrentLocation(options: IONGLOCLocationOptions): Location = try {
         withTimeout(options.timeout) {
             suspendCancellableCoroutine { continuation ->
-                val cachedLocation =
-                    locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-                if (cachedLocation != null && (System.currentTimeMillis() - cachedLocation.time) < options.maximumAge) {
-                    continuation.resume(cachedLocation)
+                getValidCachedLocation(options)?.let { validCacheLocation ->
+                    continuation.resume(validCacheLocation)
                     return@suspendCancellableCoroutine
                 }
 
@@ -93,8 +90,12 @@ internal class IONGLOCFallbackHelper(
         options: IONGLOCLocationOptions,
         locationListener: LocationListenerCompat
     ) {
+        // note: setMaxUpdateAgeMillis unavailable in this API, which is why we explicitly try to retrieve it before starting the location request
+        getValidCachedLocation(options)?.let { validCacheLocation ->
+            locationListener.onLocationChanged(validCacheLocation)
+        }
+
         val locationRequest = LocationRequestCompat.Builder(options.timeout).apply {
-            // note: setMaxUpdateAgeMillis unavailable in this API, so options.maximumAge is not used
             setQuality(getQualityToUse(options))
             if (options.minUpdateInterval != null) {
                 setMinUpdateIntervalMillis(options.minUpdateInterval)
@@ -122,6 +123,19 @@ internal class IONGLOCFallbackHelper(
         locationListener: LocationListenerCompat
     ) {
         LocationManagerCompat.removeUpdates(locationManager, locationListener)
+    }
+
+    /**
+     * Get the last cached location if valid (newer that options#maximumAge)
+     * @param options location request options to use
+     * @return the cached [Location] or null if it didn't exist or was too old.
+     */
+    @SuppressLint("MissingPermission")
+    private fun getValidCachedLocation(options: IONGLOCLocationOptions): Location? {
+        val cachedLocation = locationManager.getLastKnownLocation(getProviderToUse())
+        return cachedLocation?.takeIf {
+            (System.currentTimeMillis() - it.time) < options.maximumAge
+        }
     }
 
     /**

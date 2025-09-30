@@ -528,6 +528,29 @@ class IONGLOCControllerTest {
         }
 
     @Test
+    fun `given play services not available but enableLocationManagerFallback=true and there is cached location, when addWatch is called, cached location returned in flow`() =
+        runTest {
+            givenSuccessConditions()
+            givenPlayServicesNotAvailableWithUnResolvableError()
+            val currentTime = System.currentTimeMillis()
+            every { locationManager.getLastKnownLocation(any()) } returns mockkLocation {
+                every { time } returns currentTime
+            }
+
+            sut.addWatch(mockk<Activity>(), locationOptionsWithFallback, "1").test {
+                advanceUntilIdle()  // to wait until locationListenerCompat is instantiated
+
+                val result = awaitItem()
+                assertTrue(result.isSuccess)
+                assertEquals(
+                    listOf(locationResult.copy(timestamp = currentTime)),
+                    result.getOrNull()
+                )
+                expectNoEvents()
+            }
+        }
+
+    @Test
     fun `given watch was added via fallback, when clearWatch is called, true is returned`() =
         runTest {
             val watchId = "id"
