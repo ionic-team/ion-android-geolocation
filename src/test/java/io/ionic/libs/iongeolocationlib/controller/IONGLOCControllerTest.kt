@@ -596,6 +596,7 @@ class IONGLOCControllerTest {
         every { fusedLocationProviderClient.removeLocationUpdates(any<LocationCallback>()) } returns voidTask
 
         every { connectivityManager.activeNetwork } returns null
+        every { LocationManagerCompat.hasProvider(any(), any()) } returns true
         every { LocationManagerCompat.isLocationEnabled(any()) } returns true
         every { locationManager.getLastKnownLocation(any()) } returns null
         val consumerSlot = slot<Consumer<Location>>()

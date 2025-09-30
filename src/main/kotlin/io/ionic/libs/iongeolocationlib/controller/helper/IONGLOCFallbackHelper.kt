@@ -132,7 +132,11 @@ internal class IONGLOCFallbackHelper(
      */
     @SuppressLint("MissingPermission")
     private fun getValidCachedLocation(options: IONGLOCLocationOptions): Location? {
-        val cachedLocation = locationManager.getLastKnownLocation(getProviderToUse())
+        // get from whichever of the providers has the latest location
+        val cachedLocation = listOfNotNull(
+            locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER),
+            locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+        ).maxByOrNull { it.time }
         return cachedLocation?.takeIf {
             (System.currentTimeMillis() - it.time) < options.maximumAge
         }
@@ -167,13 +171,14 @@ internal class IONGLOCFallbackHelper(
      * @return true if there's any active network capability that could be used to improve location, false otherwise.
      */
     private fun hasNetworkEnabledForLocationPurposes() =
-        connectivityManager.activeNetwork?.let { network ->
-            connectivityManager.getNetworkCapabilities(network)?.let { capabilities ->
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) ||
-                        (IONGLOCBuildConfig.getAndroidSdkVersionCode() >= Build.VERSION_CODES.O &&
-                                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI_AWARE))
-            }
-        } ?: false
+        LocationManagerCompat.hasProvider(locationManager, LocationManager.NETWORK_PROVIDER) &&
+                connectivityManager.activeNetwork?.let { network ->
+                    connectivityManager.getNetworkCapabilities(network)?.let { capabilities ->
+                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) ||
+                                (IONGLOCBuildConfig.getAndroidSdkVersionCode() >= Build.VERSION_CODES.O &&
+                                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI_AWARE))
+                    }
+                } ?: false
 }
