@@ -37,7 +37,6 @@ internal class IONGLOCGoogleServicesHelper(
     /**
      * Checks if location is on, as well as other conditions for retrieving device location
      * @param activity the Android activity from which the location request is being triggered
-     * @param locationManager the [LocationManager] to get additional location settings from
      * @param options location request options to use
      * @param shouldTryResolve true if should try to resolve errors; false otherwise.
      * Dictates whether [LocationSettingsResult.Resolving] or [LocationSettingsResult.ResolveSkipped] is returned.
