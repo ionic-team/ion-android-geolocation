@@ -5,7 +5,6 @@ import android.content.Context
 import android.location.Location
 import android.location.LocationManager
 import android.net.ConnectivityManager
-import android.os.Build
 import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
@@ -15,12 +14,14 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
-import io.ionic.libs.iongeolocationlib.controller.helper.IONGLOCBuildConfig
 import io.ionic.libs.iongeolocationlib.controller.helper.IONGLOCFallbackHelper
 import io.ionic.libs.iongeolocationlib.controller.helper.IONGLOCGoogleServicesHelper
+import io.ionic.libs.iongeolocationlib.controller.helper.toOSLocationResult
 import io.ionic.libs.iongeolocationlib.model.IONGLOCException
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
+import io.ionic.libs.iongeolocationlib.model.internal.LocationHandler
+import io.ionic.libs.iongeolocationlib.model.internal.LocationSettingsResult
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -292,44 +293,17 @@ class IONGLOCController internal constructor(
     }
 
     /**
-     * Extension function to convert Location object into OSLocationResult object
-     * @return OSLocationResult object
-     */
-    private fun Location.toOSLocationResult(): IONGLOCLocationResult = IONGLOCLocationResult(
-        latitude = this.latitude,
-        longitude = this.longitude,
-        altitude = this.altitude,
-        accuracy = this.accuracy,
-        altitudeAccuracy = if (IONGLOCBuildConfig.getAndroidSdkVersionCode() >= Build.VERSION_CODES.O) this.verticalAccuracyMeters else null,
-        heading = this.bearing,
-        speed = this.speed,
-        timestamp = this.time
-    )
-
-    /**
-     * Extension function to convert the [IONGLOCGoogleServicesHelper.LocationSettingsResult].
+     * Extension function to convert the [LocationSettingsResult].
      * Depending on the result value, it may suspend to await a flow
      * @return a regular Kotlin [Result], which may be either Success or Error.
      */
-    private suspend fun IONGLOCGoogleServicesHelper.LocationSettingsResult.toKotlinResult(): Result<Unit> {
+    private suspend fun LocationSettingsResult.toKotlinResult(): Result<Unit> {
         return when (this) {
-            IONGLOCGoogleServicesHelper.LocationSettingsResult.Success ->
-                Result.success(Unit)
-
-            IONGLOCGoogleServicesHelper.LocationSettingsResult.Resolving ->
-                resolveLocationSettingsResultFlow.first()
-
-            is IONGLOCGoogleServicesHelper.LocationSettingsResult.ResolveSkipped ->
-                Result.failure(resolvableError)
-
-            is IONGLOCGoogleServicesHelper.LocationSettingsResult.UnresolvableError ->
-                Result.failure(error)
+            LocationSettingsResult.Success -> Result.success(Unit)
+            LocationSettingsResult.Resolving -> resolveLocationSettingsResultFlow.first()
+            is LocationSettingsResult.ResolveSkipped -> Result.failure(resolvableError)
+            is LocationSettingsResult.UnresolvableError -> Result.failure(error)
         }
-    }
-
-    sealed interface LocationHandler {
-        data class Callback(val callback: LocationCallback) : LocationHandler
-        data class Listener(val listener: LocationListenerCompat) : LocationHandler
     }
 
     companion object {

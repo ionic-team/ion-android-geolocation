@@ -20,6 +20,7 @@ import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
 import io.ionic.libs.iongeolocationlib.model.IONGLOCException
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
+import io.ionic.libs.iongeolocationlib.model.internal.LocationSettingsResult
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -115,26 +116,6 @@ internal class IONGLOCGoogleServicesHelper(
     }
 
     /**
-     * Returns a Result object containing an IONGLOCException.IONGLOCGoogleServicesException exception with the given
-     * resolvable and message values
-     * @param resolvable whether or not the exception is resolvable
-     * @param message message to include in the exception
-     * @return Result object with the exception to return
-     *
-     */
-    private fun sendResultWithGoogleServicesException(
-        resolvable: Boolean,
-        message: String
-    ): Result<Unit> {
-        return Result.failure(
-            IONGLOCException.IONGLOCGoogleServicesException(
-                resolvable = resolvable,
-                message = message
-            )
-        )
-    }
-
-    /**
      * Obtains a fresh device location.
      * @param options location request options to use
      * @return Location object representing the location
@@ -192,33 +173,5 @@ internal class IONGLOCGoogleServicesHelper(
         locationCallback: LocationCallback
     ) {
         fusedLocationClient.removeLocationUpdates(locationCallback)
-    }
-
-    /**
-     * Result returned from checking Location Settings
-     */
-    internal sealed class LocationSettingsResult {
-        /**
-         * Location settings checked successfully - Able to request location via Google Play Services
-         */
-        data object Success : LocationSettingsResult()
-
-        /**
-         * Received an error from location settings that may be resolved by the user.
-         * Check `resolveLocationSettingsResultFlow` in `IONGLOCController` to receive this result
-         */
-        data object Resolving : LocationSettingsResult()
-
-        /**
-         * Received a resolvable error from location settings, but resolving was skipped.
-         * Check the docs on `checkLocationSettings` for more information
-         */
-        data class ResolveSkipped(val resolvableError: ResolvableApiException) :
-            LocationSettingsResult()
-
-        /**
-         * An unresolvable error occurred - Cannot request location via Google Play Services
-         */
-        data class UnresolvableError(val error: Exception) : LocationSettingsResult()
     }
 }

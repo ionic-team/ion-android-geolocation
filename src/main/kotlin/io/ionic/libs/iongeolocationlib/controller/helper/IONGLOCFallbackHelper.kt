@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.location.Location
 import android.location.LocationManager
 import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Looper
 import androidx.core.location.LocationListenerCompat
@@ -149,7 +148,8 @@ internal class IONGLOCFallbackHelper(
      * @return an integer indicating the desired quality for location request
      */
     private fun getQualityToUse(options: IONGLOCLocationOptions): Int {
-        val networkEnabled = hasNetworkEnabledForLocationPurposes()
+        val networkEnabled =
+            hasNetworkEnabledForLocationPurposes(locationManager, connectivityManager)
         return when {
             options.enableHighAccuracy && networkEnabled -> LocationRequestCompat.QUALITY_HIGH_ACCURACY
             options.enableHighAccuracy || networkEnabled -> LocationRequestCompat.QUALITY_BALANCED_POWER_ACCURACY
@@ -161,24 +161,11 @@ internal class IONGLOCFallbackHelper(
      * @return the location provider to use
      */
     private fun getProviderToUse() =
-        if (hasNetworkEnabledForLocationPurposes() && IONGLOCBuildConfig.getAndroidSdkVersionCode() >= Build.VERSION_CODES.S) {
+        if (hasNetworkEnabledForLocationPurposes(locationManager, connectivityManager)
+            && IONGLOCBuildConfig.getAndroidSdkVersionCode() >= Build.VERSION_CODES.S
+        ) {
             LocationManager.FUSED_PROVIDER
         } else {
             LocationManager.GPS_PROVIDER
         }
-
-    /**
-     * @return true if there's any active network capability that could be used to improve location, false otherwise.
-     */
-    private fun hasNetworkEnabledForLocationPurposes() =
-        LocationManagerCompat.hasProvider(locationManager, LocationManager.NETWORK_PROVIDER) &&
-                connectivityManager.activeNetwork?.let { network ->
-                    connectivityManager.getNetworkCapabilities(network)?.let { capabilities ->
-                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) ||
-                                (IONGLOCBuildConfig.getAndroidSdkVersionCode() >= Build.VERSION_CODES.O &&
-                                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI_AWARE))
-                    }
-                } ?: false
 }
