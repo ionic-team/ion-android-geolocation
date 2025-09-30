@@ -96,6 +96,10 @@ Common issues and solutions:
    - Ensure clear sky view
    - Wait for better GPS signal
 
+3. Error received when in airplane mode
+   - Try setting `IONGLOCLocationOptions.enableLocationManagerFallback` to true - available since version 2.0.0
+   - Keep in mind that only GPS signal can be used if there's no network, in which case it may only be triggered if the actual GPS coordinates are changing (e.g. walking or driving).
+
 ## Contributing
 
 1. Fork the repository
