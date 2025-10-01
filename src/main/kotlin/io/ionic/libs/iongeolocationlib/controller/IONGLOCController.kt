@@ -73,10 +73,10 @@ class IONGLOCController internal constructor(
         activity: Activity,
         options: IONGLOCLocationOptions
     ): Result<IONGLOCLocationResult> {
-        try {
+        return try {
             val checkResult: Result<Unit> =
                 checkLocationPreconditions(activity, options, isSingleLocationRequest = true)
-            return if (checkResult.shouldNotProceed(options)) {
+            if (checkResult.shouldNotProceed(options)) {
                 Result.failure(
                     checkResult.exceptionOrNull() ?: NullPointerException()
                 )
@@ -87,11 +87,11 @@ class IONGLOCController internal constructor(
                     } else {
                         googleServicesHelper.getCurrentLocation(options)
                     }
-                return Result.success(location.toOSLocationResult())
+                Result.success(location.toOSLocationResult())
             }
         } catch (exception: Exception) {
             Log.d(LOG_TAG, "Error fetching location: ${exception.message}")
-            return Result.failure(exception)
+            Result.failure(exception)
         }
     }
 
@@ -258,20 +258,25 @@ class IONGLOCController internal constructor(
      */
     private fun clearWatch(id: String, addToBlackList: Boolean): Boolean {
         val watchHandler = watchLocationHandlers.remove(key = id)
-        return if (watchHandler != null) {
-            if (watchHandler is LocationHandler.Callback) {
+        return when (watchHandler) {
+            is LocationHandler.Callback -> {
                 googleServicesHelper.removeLocationUpdates(watchHandler.callback)
-            } else if (watchHandler is LocationHandler.Listener) {
+                true
+            }
+
+            is LocationHandler.Listener -> {
                 fallbackHelper.removeLocationUpdates(watchHandler.listener)
+                true
             }
-            true
-        } else {
-            if (addToBlackList) {
-                // It is possible that clearWatch is being called before requestLocationUpdates is triggered (e.g. very low timeout on JavaScript side.)
-                //  add to a blacklist in order to remove the location callback in the future
-                watchIdsBlacklist.add(id)
+
+            else -> {
+                if (addToBlackList) {
+                    // It is possible that clearWatch is being called before requestLocationUpdates is triggered (e.g. very low timeout on JavaScript side.)
+                    //  add to a blacklist in order to remove the location callback in the future
+                    watchIdsBlacklist.add(id)
+                }
+                false
             }
-            false
         }
     }
 
