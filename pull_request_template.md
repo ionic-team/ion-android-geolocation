@@ -12,11 +12,6 @@
 - [ ] Refactor (cosmetic changes)
 - [ ] Breaking change (change that would cause existing functionality to not work as expected)
 
-## Platforms affected
-- [ ] Android
-- [ ] iOS
-- [ ] JavaScript
-
 ## Tests
 <!--- Describe how you tested your changes in detail -->
 <!--- Include details of your test environment if relevant -->

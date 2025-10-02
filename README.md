@@ -31,7 +31,7 @@ In your app-level gradle file, import the `ion-android-geolocation` library like
 
 ```
     dependencies {
-    	implementation("io.ionic.libs:iongeolocation-android:1.0.0")
+    	implementation("io.ionic.libs:iongeolocation-android:2.0.0")
 	}
 ```
 
@@ -95,6 +95,10 @@ Common issues and solutions:
    - Enable high accuracy mode
    - Ensure clear sky view
    - Wait for better GPS signal
+
+3. Error received when in airplane mode
+   - Try setting `IONGLOCLocationOptions.enableLocationManagerFallback` to true - available since version 2.0.0
+   - Keep in mind that only GPS signal can be used if there's no network, in which case it may only be triggered if the actual GPS coordinates are changing (e.g. walking or driving).
 
 ## Contributing
 
