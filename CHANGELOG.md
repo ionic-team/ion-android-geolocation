@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/ionic-team/ion-android-geolocation/compare/2.0.0...2.0.1) (2025-10-24)
+
+
+### Bug Fixes
+
+* this is a simple test fix commit to test the release automation ([2b874a9](https://github.com/ionic-team/ion-android-geolocation/commit/2b874a9374975d70532cb186b77d50ce3b04271f))
+
 # Changelog
 All notable changes to this project will be documented in this file.
 
