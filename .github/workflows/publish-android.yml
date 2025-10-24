@@ -1,6 +1,11 @@
 name: Publish Native Android Library
 
-on: workflow_dispatch
+on: 
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version being released"
+        required: false
 
 jobs:
   publish-android:
