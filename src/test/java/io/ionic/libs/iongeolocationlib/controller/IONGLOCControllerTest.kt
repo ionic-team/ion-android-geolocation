@@ -249,7 +249,8 @@ class IONGLOCControllerTest {
             givenSuccessConditions()
 
             sut.addWatch(mockk<Activity>(), locationOptions, "1").test {
-                advanceUntilIdle()  // to wait until locationCallback is instantiated
+                // to wait until locationListenerCompat is instantiated, but not long enough for timeout to trigger
+                advanceTimeBy(locationOptionsWithFallback.timeout / 2)
                 emitLocationsGMS(listOf(mockAndroidLocation))
                 var result = awaitItem()
                 assertTrue(result.isSuccess)
@@ -280,7 +281,8 @@ class IONGLOCControllerTest {
         runTest {
             givenPlayServicesNotAvailableWithResolvableError()
 
-            sut.addWatch(mockk<Activity>(), locationOptions, "1").test {
+            // skip timeout in tests by calling internal method
+            sut.addWatchInternal(mockk<Activity>(), locationOptions, "1").test {
                 val result = awaitItem()
 
                 assertTrue(result.isFailure)
@@ -299,7 +301,8 @@ class IONGLOCControllerTest {
             givenResolvableApiException(Activity.RESULT_OK)
 
             sut.addWatch(mockk<Activity>(), locationOptions, "1").test {
-                advanceUntilIdle()  // to wait until locationCallback is instantiated
+                // to wait until locationListenerCompat is instantiated, but not long enough for timeout to trigger
+                advanceTimeBy(locationOptionsWithFallback.timeout / 2)
                 emitLocationsGMS(listOf(mockAndroidLocation))
                 val result = awaitItem()
 
@@ -332,7 +335,8 @@ class IONGLOCControllerTest {
             val error = RuntimeException()
             coEvery { locationSettingsTask.await() } throws error
 
-            sut.addWatch(mockk<Activity>(), locationOptions, "1").test {
+            // skip timeout in tests by calling internal method
+            sut.addWatchInternal(mockk<Activity>(), locationOptions, "1").test {
                 testScheduler.advanceTimeBy(DELAY)
                 val result = awaitItem()
 
@@ -347,6 +351,21 @@ class IONGLOCControllerTest {
                 expectNoEvents()
             }
         }
+
+    @Test
+    fun `given there are no location updates, when addWatch is called, IONGLOCLocationRetrievalTimeoutException is returned`() =
+        runTest {
+            givenSuccessConditions() // to instantiate mocks
+
+            sut.addWatch(mockk<Activity>(), locationOptions, "1").test {
+                testScheduler.advanceUntilIdle()
+                val result = awaitItem()
+
+                assertTrue(result.isFailure)
+                assertTrue(result.exceptionOrNull() is IONGLOCException.IONGLOCLocationRetrievalTimeoutException)
+                awaitComplete()
+            }
+        }
     // endregion addWatch tests
 
     // region clearWatch tests
@@ -355,7 +374,8 @@ class IONGLOCControllerTest {
         val watchId = "id"
         givenSuccessConditions()
         sut.addWatch(mockk<Activity>(), locationOptions, watchId).test {
-            advanceUntilIdle()  // to wait until locationCallback is instantiated
+            // to wait until locationListenerCompat is instantiated, but not long enough for timeout to trigger
+            advanceTimeBy(locationOptionsWithFallback.timeout / 2)
 
             val result = sut.clearWatch(watchId)
 
@@ -384,7 +404,8 @@ class IONGLOCControllerTest {
             sut.clearWatch(watchId)
 
             sut.addWatch(mockk<Activity>(), locationOptions, watchId).test {
-                advanceUntilIdle()  // to wait until locationCallback is instantiated
+                // to wait until locationListenerCompat is instantiated, but not long enough for timeout to trigger
+                advanceTimeBy(locationOptionsWithFallback.timeout / 2)
 
                 emitLocationsGMS(listOf(mockAndroidLocation))
 
@@ -524,7 +545,8 @@ class IONGLOCControllerTest {
             givenPlayServicesNotAvailableWithResolvableError()
 
             sut.addWatch(mockk<Activity>(), locationOptionsWithFallback, "1").test {
-                advanceUntilIdle()  // to wait until locationListenerCompat is instantiated
+                // to wait until locationListenerCompat is instantiated, but not long enough for timeout to trigger
+                advanceTimeBy(locationOptionsWithFallback.timeout / 2)
                 emitLocationsFallback(listOf(mockAndroidLocation))
                 var result = awaitItem()
                 assertTrue(result.isSuccess)
@@ -558,7 +580,8 @@ class IONGLOCControllerTest {
                 every { time } returns currentTime
             }
 
-            sut.addWatch(mockk<Activity>(), locationOptionsWithFallback, "1").test {
+            // skip timeout in tests by calling internal method
+            sut.addWatchInternal(mockk<Activity>(), locationOptionsWithFallback, "1").test {
                 advanceUntilIdle()  // to wait until locationListenerCompat is instantiated
 
                 val result = awaitItem()
@@ -572,13 +595,32 @@ class IONGLOCControllerTest {
         }
 
     @Test
+    fun `given fallback is being used but there are no location updates, when addWatch is called, IONGLOCLocationRetrievalTimeoutException is returned`() =
+        runTest {
+            givenSuccessConditions()
+            givenPlayServicesNotAvailableWithUnResolvableError()
+
+            sut.addWatch(mockk<Activity>(), locationOptionsWithFallback, "1").test {
+                testScheduler.advanceUntilIdle()
+                val result = awaitItem()
+
+                assertTrue(result.isFailure)
+                assertTrue(result.exceptionOrNull() is IONGLOCException.IONGLOCLocationRetrievalTimeoutException)
+                awaitComplete()
+            }
+        }
+
+    @Test
     fun `given watch was added via fallback, when clearWatch is called, true is returned`() =
         runTest {
             val watchId = "id"
             givenSuccessConditions()
             givenPlayServicesNotAvailableWithUnResolvableError()
             sut.addWatch(mockk<Activity>(), locationOptionsWithFallback, watchId).test {
-                advanceUntilIdle()  // to wait until locationListenerCompat is instantiated
+                // to wait until locationListenerCompat is instantiated, but not long enough for timeout to trigger
+                advanceTimeBy(locationOptionsWithFallback.timeout / 2)
+                emitLocationsFallback(listOf(mockAndroidLocation))
+                awaitItem()
 
                 val result = sut.clearWatch(watchId)
 

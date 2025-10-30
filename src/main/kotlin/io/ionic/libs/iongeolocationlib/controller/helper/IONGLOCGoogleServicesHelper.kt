@@ -51,7 +51,7 @@ internal class IONGLOCGoogleServicesHelper(
     ): LocationSettingsResult {
         val request = LocationRequest.Builder(
             if (options.enableHighAccuracy) Priority.PRIORITY_HIGH_ACCURACY else Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-            options.timeout
+            options.interval
         ).build()
 
         val builder = LocationSettingsRequest.Builder()
@@ -144,7 +144,7 @@ internal class IONGLOCGoogleServicesHelper(
         options: IONGLOCLocationOptions,
         locationCallback: LocationCallback
     ) {
-        val locationRequest = LocationRequest.Builder(options.timeout).apply {
+        val locationRequest = LocationRequest.Builder(options.interval).apply {
             setMaxUpdateAgeMillis(options.maximumAge)
             setPriority(if (options.enableHighAccuracy) Priority.PRIORITY_HIGH_ACCURACY else Priority.PRIORITY_BALANCED_POWER_ACCURACY)
             if (options.minUpdateInterval != null) {

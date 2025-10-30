@@ -8,6 +8,7 @@ import android.net.ConnectivityManager
 import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
+import androidx.annotation.VisibleForTesting
 import androidx.core.location.LocationListenerCompat
 import androidx.core.location.LocationManagerCompat
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -22,11 +23,17 @@ import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
 import io.ionic.libs.iongeolocationlib.model.internal.LocationHandler
 import io.ionic.libs.iongeolocationlib.model.internal.LocationSettingsResult
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.timeout
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 /**
  * Entry point in IONGeolocationLib-Android
@@ -129,7 +136,31 @@ class IONGLOCController internal constructor(
      * @param watchId a unique id identifying the watch
      * @return Flow in which location updates will be emitted
      */
+    @OptIn(FlowPreview::class)
     fun addWatch(
+        activity: Activity,
+        options: IONGLOCLocationOptions,
+        watchId: String
+    ): Flow<Result<List<IONGLOCLocationResult>>> = addWatchInternal(activity, options, watchId)
+        .timeout(options.timeout.toDuration(DurationUnit.MILLISECONDS))
+        .catch { e ->
+            if (e is TimeoutCancellationException) {
+                emit(
+                    Result.failure(
+                        IONGLOCException.IONGLOCLocationRetrievalTimeoutException(
+                            "Watch location request timed out. Try a higher timeout value.",
+                            e
+                        )
+                    )
+                )
+                clearWatch(watchId)
+            } else {
+                throw e
+            }
+        }
+
+    @VisibleForTesting
+    internal fun addWatchInternal(
         activity: Activity,
         options: IONGLOCLocationOptions,
         watchId: String
