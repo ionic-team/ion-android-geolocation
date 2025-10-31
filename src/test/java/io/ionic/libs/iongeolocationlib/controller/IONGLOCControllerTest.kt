@@ -607,6 +607,23 @@ class IONGLOCControllerTest {
         }
 
     @Test
+    fun `given all preconditions pass and enableLocationManagerFallback=true, when addWatch is called, the fallback is not called`() =
+        runTest {
+            givenSuccessConditions() // to instantiate mocks
+
+            sut.addWatch(mockk<Activity>(), locationOptionsWithFallback, "1").test {
+                // to wait until locationListenerCompat is instantiated, but not long enough for timeout to trigger
+                advanceTimeBy(locationOptionsWithFallback.timeout / 2)
+                emitLocationsGMS(listOf(mockAndroidLocation))
+                assertTrue(awaitItem().isSuccess)
+            }
+
+            coVerify(inverse = true) {
+                fallbackHelper.requestLocationUpdates(any(), any())
+            }
+        }
+
+    @Test
     fun `given watch was added via fallback, when clearWatch is called, true is returned`() =
         runTest {
             val watchId = "id"

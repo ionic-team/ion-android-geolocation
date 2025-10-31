@@ -147,15 +147,16 @@ class IONGLOCController internal constructor(
     ): Flow<Result<List<IONGLOCLocationResult>>> {
 
         val setupFlow = watchSetupPreconditionsFlow(activity, options)
-
-        val updatesFlow = watchLocationUpdatesFlow(options, watchId)
-
         // Concatenate flows: only proceed with watch if setup is successful
         return setupFlow.flatMapConcat { setupResult ->
             if (setupResult.isFailure) {
                 flowOf(Result.failure(setupResult.exceptionOrNull() ?: NullPointerException()))
             } else {
-                updatesFlow
+                watchLocationUpdatesFlow(
+                    options,
+                    useFallback = setupResult.getOrNull() ?: false,
+                    watchId
+                )
                     .emitOrTimeoutBeforeFirstEmission(timeoutMillis = options.timeout)
                     .onEach { emission ->
                         if (emission.exceptionOrNull() is IONGLOCException.IONGLOCLocationRetrievalTimeoutException) {
@@ -177,19 +178,20 @@ class IONGLOCController internal constructor(
      * Create a flow for setup and checking preconditions for watch location
      * @param activity the Android activity from which the location request is being triggered
      * @param options location request options to use
-     * @return Flow with success if pre-condition checks passed, or failure otherwise.
+     * @return Flow with success if pre-condition checks passed and boolean flag to decide whether or not fallback is required, or failure otherwise.
      */
     private fun watchSetupPreconditionsFlow(
         activity: Activity,
         options: IONGLOCLocationOptions
-    ): Flow<Result<Unit>> = flow {
+    ): Flow<Result<Boolean>> = flow {
         try {
             val checkResult: Result<Unit> =
                 checkLocationPreconditions(activity, options, isSingleLocationRequest = false)
             if (checkResult.shouldNotProceed(options)) {
                 emit(Result.failure(checkResult.exceptionOrNull() ?: NullPointerException()))
             } else {
-                emit(Result.success(Unit))
+                val useFallback = checkResult.isFailure && options.enableLocationManagerFallback
+                emit(Result.success(useFallback))
             }
         } catch (exception: Exception) {
             Log.d(LOG_TAG, "Error getting pre-conditions for watch: ${exception.message}")
@@ -204,12 +206,14 @@ class IONGLOCController internal constructor(
     /**
      * Create a flow where location updates are emitted for a watch.
      * @param options location request options to use
+     * @param useFallback whether or not the fallback should be used
      * @param watchId a unique id identifying the watch
      * @return Flow in which location updates will be emitted
      */
     private fun watchLocationUpdatesFlow(
         options: IONGLOCLocationOptions,
-        watchId: String
+        useFallback: Boolean,
+        watchId: String,
     ): Flow<Result<List<IONGLOCLocationResult>>> = callbackFlow {
         fun onNewLocations(locations: List<Location>) {
             if (checkWatchInBlackList(watchId)) return
@@ -221,7 +225,7 @@ class IONGLOCController internal constructor(
             requestLocationUpdates(
                 watchId,
                 options,
-                useFallback = options.enableLocationManagerFallback
+                useFallback = useFallback
             ) { onNewLocations(it) }
         } catch (e: Exception) {
             trySend(Result.failure(e))
