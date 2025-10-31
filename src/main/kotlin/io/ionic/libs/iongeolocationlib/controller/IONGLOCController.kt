@@ -160,7 +160,7 @@ class IONGLOCController internal constructor(
                     .emitOrTimeoutBeforeFirstEmission(timeoutMillis = options.timeout)
                     .onEach { emission ->
                         if (emission.exceptionOrNull() is IONGLOCException.IONGLOCLocationRetrievalTimeoutException) {
-                            watchIdsBlacklist.add(watchId)
+                            clearWatch(watchId)
                         }
                     }
             }
