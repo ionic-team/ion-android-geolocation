@@ -16,6 +16,7 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import io.ionic.libs.iongeolocationlib.controller.helper.IONGLOCFallbackHelper
 import io.ionic.libs.iongeolocationlib.controller.helper.IONGLOCGoogleServicesHelper
+import io.ionic.libs.iongeolocationlib.controller.helper.emitOrTimeoutBeforeFirstEmission
 import io.ionic.libs.iongeolocationlib.controller.helper.toOSLocationResult
 import io.ionic.libs.iongeolocationlib.model.IONGLOCException
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
@@ -25,22 +26,17 @@ import io.ionic.libs.iongeolocationlib.model.internal.LocationSettingsResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.timeout
 import kotlinx.coroutines.isActive
 import org.jetbrains.annotations.VisibleForTesting
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 
 /**
  * Entry point in IONGeolocationLib-Android
@@ -159,23 +155,7 @@ class IONGLOCController internal constructor(
             if (setupResult.isFailure) {
                 flowOf(Result.failure(setupResult.exceptionOrNull() ?: NullPointerException()))
             } else {
-                updatesFlow
-                    .timeout(options.timeout.toDuration(DurationUnit.MILLISECONDS))
-                    .catch { e ->
-                        if (e is TimeoutCancellationException) {
-                            emit(
-                                Result.failure(
-                                    IONGLOCException.IONGLOCLocationRetrievalTimeoutException(
-                                        "Watch location request timed out. Try a higher timeout value.",
-                                        e
-                                    )
-                                )
-                            )
-                            clearWatch(watchId)
-                        } else {
-                            throw e
-                        }
-                    }
+                updatesFlow.emitOrTimeoutBeforeFirstEmission(timeoutMillis = options.timeout)
             }
         }
     }
@@ -217,13 +197,11 @@ class IONGLOCController internal constructor(
 
     /**
      * Create a flow where location updates are emitted for a watch.
-     * Internal visibility to be accessible by tests.
      * @param options location request options to use
      * @param watchId a unique id identifying the watch
      * @return Flow in which location updates will be emitted
      */
-    @VisibleForTesting
-    internal fun watchLocationUpdatesFlow(
+    private fun watchLocationUpdatesFlow(
         options: IONGLOCLocationOptions,
         watchId: String
     ): Flow<Result<List<IONGLOCLocationResult>>> = callbackFlow {

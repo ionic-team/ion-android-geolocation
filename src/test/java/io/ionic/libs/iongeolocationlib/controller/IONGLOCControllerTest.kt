@@ -56,7 +56,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -578,9 +577,8 @@ class IONGLOCControllerTest {
                 every { time } returns currentTime
             }
 
-            // call internal method to skip timeout
-            sut.watchLocationUpdatesFlow(locationOptionsWithFallback, "1").test {
-                advanceUntilIdle()
+            sut.addWatch(mockk<Activity>(), locationOptionsWithFallback, "1").test {
+                testScheduler.advanceUntilIdle()
 
                 val result = awaitItem()
                 assertTrue(result.isSuccess)
