@@ -100,6 +100,11 @@ Common issues and solutions:
    - Try setting `IONGLOCLocationOptions.enableLocationManagerFallback` to true - available since version 2.0.0
    - Keep in mind that only GPS signal can be used if there's no network, in which case it may only be triggered if the actual GPS coordinates are changing (e.g. walking or driving).
 
+4. Timeout received in `watchPosition`
+    - Use the `IONGLOCLocationOptions.interval` parameter, introduced in version 2.1.0, and set it to below `timeout`, in order to try to receive a first location update before timing out.
+    - Increase the `IONGLOCLocationOptions.timeout` value, if your use case can wait for some time.
+    - Increase `IONGLOCLocationOptions.maximumAge` to allow to retrieve an older location quickly for the first update.
+
 ## Contributing
 
 1. Fork the repository

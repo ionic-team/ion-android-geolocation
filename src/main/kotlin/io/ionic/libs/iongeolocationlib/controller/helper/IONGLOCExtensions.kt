@@ -67,7 +67,7 @@ internal fun Location.toOSLocationResult(): IONGLOCLocationResult = IONGLOCLocat
 )
 
 /**
- *
+ * Flow extension to either emit its values, or emit a timeout error if [timeoutMillis] is reached before any emission
  */
 fun <T> Flow<Result<T>>.emitOrTimeoutBeforeFirstEmission(timeoutMillis: Long): Flow<Result<T>> =
     flow {
