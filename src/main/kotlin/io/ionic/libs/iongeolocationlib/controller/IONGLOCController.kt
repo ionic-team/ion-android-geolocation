@@ -35,8 +35,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
-import org.jetbrains.annotations.VisibleForTesting
 
 /**
  * Entry point in IONGeolocationLib-Android
@@ -155,7 +155,13 @@ class IONGLOCController internal constructor(
             if (setupResult.isFailure) {
                 flowOf(Result.failure(setupResult.exceptionOrNull() ?: NullPointerException()))
             } else {
-                updatesFlow.emitOrTimeoutBeforeFirstEmission(timeoutMillis = options.timeout)
+                updatesFlow
+                    .emitOrTimeoutBeforeFirstEmission(timeoutMillis = options.timeout)
+                    .onEach { emission ->
+                        if (emission.exceptionOrNull() is IONGLOCException.IONGLOCLocationRetrievalTimeoutException) {
+                            watchIdsBlacklist.add(watchId)
+                        }
+                    }
             }
         }
     }
@@ -222,7 +228,7 @@ class IONGLOCController internal constructor(
         }
 
         awaitClose {
-            clearWatch(watchId)
+            Log.d(LOG_TAG, "channel closed")
         }
     }
 
