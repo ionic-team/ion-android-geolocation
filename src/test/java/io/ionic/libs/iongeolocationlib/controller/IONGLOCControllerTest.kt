@@ -281,8 +281,7 @@ class IONGLOCControllerTest {
         runTest {
             givenPlayServicesNotAvailableWithResolvableError()
 
-            // skip timeout in tests by calling internal method
-            sut.addWatchInternal(mockk<Activity>(), locationOptions, "1").test {
+            sut.addWatch(mockk<Activity>(), locationOptions, "1").test {
                 val result = awaitItem()
 
                 assertTrue(result.isFailure)
@@ -290,7 +289,7 @@ class IONGLOCControllerTest {
                     assertTrue(exception is IONGLOCException.IONGLOCGoogleServicesException)
                     assertTrue((exception as IONGLOCException.IONGLOCGoogleServicesException).resolvable)
                 }
-                expectNoEvents()
+                awaitComplete()
             }
         }
 
@@ -324,7 +323,7 @@ class IONGLOCControllerTest {
 
                 assertTrue(result.isFailure)
                 assertTrue(result.exceptionOrNull() is IONGLOCException.IONGLOCRequestDeniedException)
-                expectNoEvents()
+                awaitComplete()
             }
         }
 
@@ -335,8 +334,7 @@ class IONGLOCControllerTest {
             val error = RuntimeException()
             coEvery { locationSettingsTask.await() } throws error
 
-            // skip timeout in tests by calling internal method
-            sut.addWatchInternal(mockk<Activity>(), locationOptions, "1").test {
+            sut.addWatch(mockk<Activity>(), locationOptions, "1").test {
                 testScheduler.advanceTimeBy(DELAY)
                 val result = awaitItem()
 
@@ -348,7 +346,7 @@ class IONGLOCControllerTest {
                         (exception as IONGLOCException.IONGLOCSettingsException).cause
                     )
                 }
-                expectNoEvents()
+                awaitComplete()
             }
         }
 
@@ -580,9 +578,9 @@ class IONGLOCControllerTest {
                 every { time } returns currentTime
             }
 
-            // skip timeout in tests by calling internal method
-            sut.addWatchInternal(mockk<Activity>(), locationOptionsWithFallback, "1").test {
-                advanceUntilIdle()  // to wait until locationListenerCompat is instantiated
+            // call internal method to skip timeout
+            sut.watchLocationUpdatesFlow(locationOptionsWithFallback, "1").test {
+                advanceUntilIdle()
 
                 val result = awaitItem()
                 assertTrue(result.isSuccess)
