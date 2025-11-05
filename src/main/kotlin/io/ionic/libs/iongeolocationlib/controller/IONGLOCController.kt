@@ -16,17 +16,27 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import io.ionic.libs.iongeolocationlib.controller.helper.IONGLOCFallbackHelper
 import io.ionic.libs.iongeolocationlib.controller.helper.IONGLOCGoogleServicesHelper
+import io.ionic.libs.iongeolocationlib.controller.helper.emitOrTimeoutBeforeFirstEmission
 import io.ionic.libs.iongeolocationlib.controller.helper.toOSLocationResult
 import io.ionic.libs.iongeolocationlib.model.IONGLOCException
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
 import io.ionic.libs.iongeolocationlib.model.internal.LocationHandler
 import io.ionic.libs.iongeolocationlib.model.internal.LocationSettingsResult
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.isActive
 
 /**
  * Entry point in IONGeolocationLib-Android
@@ -127,44 +137,33 @@ class IONGLOCController internal constructor(
      * @param activity the Android activity from which the location request is being triggered
      * @param options location request options to use
      * @param watchId a unique id identifying the watch
-     * @return Flow in which location updates will be emitted
+     * @return Flow in which location updates will be emitted, or failure if something went wrong in retrieving updates
      */
+    @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
     fun addWatch(
         activity: Activity,
         options: IONGLOCLocationOptions,
         watchId: String
-    ): Flow<Result<List<IONGLOCLocationResult>>> = callbackFlow {
-        try {
-            fun onNewLocations(locations: List<Location>) {
-                if (checkWatchInBlackList(watchId)) {
-                    return
-                }
-                val locationResultList = locations.map { currentLocation ->
-                    currentLocation.toOSLocationResult()
-                }
-                trySend(Result.success(locationResultList))
-            }
+    ): Flow<Result<List<IONGLOCLocationResult>>> {
 
-            val checkResult: Result<Unit> =
-                checkLocationPreconditions(activity, options, isSingleLocationRequest = false)
-            if (checkResult.shouldNotProceed(options)) {
-                trySend(
-                    Result.failure(checkResult.exceptionOrNull() ?: NullPointerException())
-                )
+        val setupFlow = watchSetupPreconditionsFlow(activity, options)
+        // Concatenate flows: only proceed with watch if setup is successful
+        return setupFlow.flatMapConcat { setupResult ->
+            if (setupResult.isFailure) {
+                flowOf(Result.failure(setupResult.exceptionOrNull() ?: NullPointerException()))
             } else {
-                requestLocationUpdates(
-                    watchId,
+                watchLocationUpdatesFlow(
                     options,
-                    useFallback = checkResult.isFailure && options.enableLocationManagerFallback
-                ) { onNewLocations(it) }
+                    useFallback = setupResult.getOrNull() ?: false,
+                    watchId
+                )
+                    .emitOrTimeoutBeforeFirstEmission(timeoutMillis = options.timeout)
+                    .onEach { emission ->
+                        if (emission.exceptionOrNull() is IONGLOCException.IONGLOCLocationRetrievalTimeoutException) {
+                            clearWatch(watchId)
+                        }
+                    }
             }
-        } catch (exception: Exception) {
-            Log.d(LOG_TAG, "Error requesting location updates: ${exception.message}")
-            trySend(Result.failure(exception))
-        }
-
-        awaitClose {
-            clearWatch(watchId)
         }
     }
 
@@ -174,6 +173,68 @@ class IONGLOCController internal constructor(
      * @return true if watch was cleared, false if watch was not found
      */
     fun clearWatch(id: String): Boolean = clearWatch(id, addToBlackList = true)
+
+    /**
+     * Create a flow for setup and checking preconditions for watch location
+     * @param activity the Android activity from which the location request is being triggered
+     * @param options location request options to use
+     * @return Flow with success if pre-condition checks passed and boolean flag to decide whether or not fallback is required, or failure otherwise.
+     */
+    private fun watchSetupPreconditionsFlow(
+        activity: Activity,
+        options: IONGLOCLocationOptions
+    ): Flow<Result<Boolean>> = flow {
+        try {
+            val checkResult: Result<Unit> =
+                checkLocationPreconditions(activity, options, isSingleLocationRequest = false)
+            if (checkResult.shouldNotProceed(options)) {
+                emit(Result.failure(checkResult.exceptionOrNull() ?: NullPointerException()))
+            } else {
+                val useFallback = checkResult.isFailure && options.enableLocationManagerFallback
+                emit(Result.success(useFallback))
+            }
+        } catch (exception: Exception) {
+            Log.d(LOG_TAG, "Error getting pre-conditions for watch: ${exception.message}")
+            if (currentCoroutineContext().isActive) {
+                emit(Result.failure(exception))
+            } else if (exception is CancellationException) {
+                throw exception
+            }
+        }
+    }
+
+    /**
+     * Create a flow where location updates are emitted for a watch.
+     * @param options location request options to use
+     * @param useFallback whether or not the fallback should be used
+     * @param watchId a unique id identifying the watch
+     * @return Flow in which location updates will be emitted
+     */
+    private fun watchLocationUpdatesFlow(
+        options: IONGLOCLocationOptions,
+        useFallback: Boolean,
+        watchId: String,
+    ): Flow<Result<List<IONGLOCLocationResult>>> = callbackFlow {
+        fun onNewLocations(locations: List<Location>) {
+            if (checkWatchInBlackList(watchId)) return
+            val locationResultList = locations.map { it.toOSLocationResult() }
+            trySend(Result.success(locationResultList))
+        }
+
+        try {
+            requestLocationUpdates(
+                watchId,
+                options,
+                useFallback = useFallback
+            ) { onNewLocations(it) }
+        } catch (e: Exception) {
+            trySend(Result.failure(e))
+        }
+
+        awaitClose {
+            Log.d(LOG_TAG, "channel closed")
+        }
+    }
 
     /**
      * Checks if all preconditions for retrieving location are met

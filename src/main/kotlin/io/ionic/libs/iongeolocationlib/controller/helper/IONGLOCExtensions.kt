@@ -8,6 +8,11 @@ import android.os.Build
 import androidx.core.location.LocationManagerCompat
 import io.ionic.libs.iongeolocationlib.model.IONGLOCException
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * @return true if there's any active network capability that could be used to improve location, false otherwise.
@@ -60,3 +65,34 @@ internal fun Location.toOSLocationResult(): IONGLOCLocationResult = IONGLOCLocat
     speed = this.speed,
     timestamp = this.time
 )
+
+/**
+ * Flow extension to either emit its values, or emit a timeout error if [timeoutMillis] is reached before any emission
+ */
+fun <T> Flow<Result<T>>.emitOrTimeoutBeforeFirstEmission(timeoutMillis: Long): Flow<Result<T>> =
+    channelFlow {
+        var firstValue: Result<T>? = null
+
+        val job = launch {
+            collect { value ->
+                if (firstValue == null) firstValue = value
+                send(value)
+            }
+        }
+
+        // Poll until first emission, or timeout
+        withTimeoutOrNull(timeMillis = timeoutMillis) {
+            while (firstValue == null) {
+                delay(timeMillis = 10)
+            }
+        } ?: run {
+            send(
+                Result.failure(
+                    IONGLOCException.IONGLOCLocationRetrievalTimeoutException(
+                        "Location request timed out before first emission"
+                    )
+                )
+            )
+            job.cancel()
+        }
+    }

@@ -94,7 +94,7 @@ internal class IONGLOCFallbackHelper(
             locationListener.onLocationChanged(validCacheLocation)
         }
 
-        val locationRequest = LocationRequestCompat.Builder(options.timeout).apply {
+        val locationRequest = LocationRequestCompat.Builder(options.interval).apply {
             setQuality(getQualityToUse(options))
             if (options.minUpdateInterval != null) {
                 setMinUpdateIntervalMillis(options.minUpdateInterval)
