@@ -99,15 +99,7 @@ class IONGLOCController internal constructor(
                     } else {
                         googleServicesHelper.getCurrentLocation(options)
                     }
-                sensorHandler.start()
-                // Wait briefly for sensors to stabilize if needed, but generally we just take what's available
-                sensorHandler.updateLocation(location)
-                val result = location.toOSLocationResult(
-                    magneticHeading = sensorHandler.magneticHeading,
-                    trueHeading = sensorHandler.trueHeading,
-                    headingAccuracy = sensorHandler.headingAccuracy
-                )
-                sensorHandler.stop()
+                val result = location.toOSLocationResult()
                 Result.success(result)
             }
         } catch (exception: Exception) {

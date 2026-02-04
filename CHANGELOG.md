@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.0]
 
 ### 2026-02-02
-- Feature: Add support for magnetic and true heading using device sensors.
+- Feature: Add support for magnetic and true heading using device sensors (available for location updates only).
 - Feature: Add `magneticHeading`, `trueHeading`, `headingAccuracy`, and `course` to `IONGLOCLocationResult`.
 
 ## [2.1.0]
