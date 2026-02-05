@@ -85,6 +85,8 @@ class IONGLOCControllerTest {
     )
     private val fallbackHelper = spyk(IONGLOCFallbackHelper(locationManager, connectivityManager))
 
+    private val sensorHandler = mockk<IONGLOCSensorHandler>(relaxed = true)
+
     private val mockAndroidLocation = mockkLocation()
     private val locationSettingsTask = mockk<Task<LocationSettingsResponse>>(relaxed = true)
     private val currentLocationTask = mockk<Task<Location?>>(relaxed = true)
@@ -116,8 +118,15 @@ class IONGLOCControllerTest {
             connectivityManager = connectivityManager,
             activityLauncher = activityResultLauncher,
             googleServicesHelper = googleServicesHelper,
-            fallbackHelper = fallbackHelper
+            fallbackHelper = fallbackHelper,
+            sensorHandler = sensorHandler
         )
+
+        every { sensorHandler.magneticHeading } returns null
+        every { sensorHandler.trueHeading } returns null
+        every { sensorHandler.headingAccuracy } returns null
+        every { sensorHandler.start() } just runs
+        every { sensorHandler.stop() } just runs
     }
 
     @After
@@ -738,6 +747,7 @@ class IONGLOCControllerTest {
             every { bearing } returns 4.0f
             every { speed } returns 0.2f
             every { time } returns 1L
+            every { hasBearing() } returns true
             overrideDefaultMocks()
         }
 

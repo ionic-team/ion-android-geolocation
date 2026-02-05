@@ -19,10 +19,13 @@ internal class IONGLOCSensorHandler(context: Context) : SensorEventListener {
     private var gravity: FloatArray? = null
     private var geomagnetic: FloatArray? = null
 
+    @Volatile
     var magneticHeading: Float? = null
         private set
+    @Volatile
     var trueHeading: Float? = null
         private set
+    @Volatile
     var headingAccuracy: Float? = null
         private set
 
