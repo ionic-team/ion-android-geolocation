@@ -790,7 +790,8 @@ class IONGLOCControllerTest {
             altitudeAccuracy = 1.5f,
             heading = 4.0f,
             speed = 0.2f,
-            timestamp = 1L
+            timestamp = 1L,
+            course = 4.0f
         )
     }
 }
