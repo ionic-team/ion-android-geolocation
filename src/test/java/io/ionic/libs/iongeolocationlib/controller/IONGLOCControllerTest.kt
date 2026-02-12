@@ -61,6 +61,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -248,6 +249,7 @@ class IONGLOCControllerTest {
                 )
             }
         }
+
     // endregion getCurrentLocation tests
 
     // region addWatch tests
@@ -370,6 +372,31 @@ class IONGLOCControllerTest {
                 assertTrue(result.isFailure)
                 assertTrue(result.exceptionOrNull() is IONGLOCException.IONGLOCLocationRetrievalTimeoutException)
                 awaitComplete()
+            }
+        }
+
+    @Test
+    fun `given sensor handler has data, when addWatch is called, result includes sensor data`() =
+        runTest {
+            givenSuccessConditions()
+            every { sensorHandler.magneticHeading } returns 100f
+            every { sensorHandler.trueHeading } returns 110f
+            every { sensorHandler.headingAccuracy } returns 5f
+
+            sut.addWatch(mockk<Activity>(), locationOptions, "1").test {
+                advanceTimeBy(locationOptionsWithFallback.timeout / 2)
+                emitLocationsGMS(listOf(mockAndroidLocation))
+                val result = awaitItem()
+
+                assertTrue(result.isSuccess)
+                val locations = result.getOrNull()
+                assertNotNull(locations)
+                val location = locations?.first()
+                assertEquals(100f, location?.magneticHeading)
+                assertEquals(110f, location?.trueHeading)
+                assertEquals(5f, location?.headingAccuracy)
+                // Heading should prefer trueHeading
+                assertEquals(110f, location?.heading)
             }
         }
     // endregion addWatch tests
@@ -533,9 +560,7 @@ class IONGLOCControllerTest {
     fun `given SETTINGS_CHANGE_UNAVAILABLE error and network+location disabled and enableLocationManagerFallback=true, when getCurrentLocation is called, IONGLOCLocationAndNetworkDisabledException is returned`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
-            coEvery { locationSettingsTask.await() } throws mockk<ApiException> {
-                every { message } returns "8502: SETTINGS_CHANGE_UNAVAILABLE"
-            }
+            coEvery { locationSettingsTask.await() } throws ApiException(Status(8502, "SETTINGS_CHANGE_UNAVAILABLE"))
             every { LocationManagerCompat.isLocationEnabled(any()) } returns false
 
             val result = sut.getCurrentPosition(mockk<Activity>(), locationOptionsWithFallback)
