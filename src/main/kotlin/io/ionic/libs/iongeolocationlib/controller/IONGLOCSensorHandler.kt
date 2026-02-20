@@ -22,14 +22,10 @@ internal class IONGLOCSensorHandler(context: Context) : SensorEventListener {
     @Volatile
     var magneticHeading: Float? = null
         private set
-    @Volatile
-    var trueHeading: Float? = null
-        private set
+
     @Volatile
     var headingAccuracy: Float? = null
         private set
-
-    private var lastLocation: Location? = null
 
     private var watcherCount = 0
 
@@ -53,11 +49,6 @@ internal class IONGLOCSensorHandler(context: Context) : SensorEventListener {
             watcherCount = 0
             sensorManager.unregisterListener(this)
         }
-    }
-
-    fun updateLocation(location: Location) {
-        lastLocation = location
-        updateHeadings()
     }
 
     override fun onSensorChanged(event: SensorEvent) {
@@ -89,20 +80,23 @@ internal class IONGLOCSensorHandler(context: Context) : SensorEventListener {
             val azimuthInRadians = orientation[0]
             val azimuthInDegrees = Math.toDegrees(azimuthInRadians.toDouble()).toFloat()
             magneticHeading = (azimuthInDegrees + 360) % 360
+        }
+    }
 
-            lastLocation?.let { location ->
-                magneticHeading?.let { mh ->
-                    val geoField = GeomagneticField(
-                        location.latitude.toFloat(),
-                        location.longitude.toFloat(),
-                        location.altitude.toFloat(),
-                        System.currentTimeMillis()
-                    )
-                    trueHeading = (mh + geoField.declination + 360) % 360
-                }
-            } ?: run {
-                trueHeading = magneticHeading
-            }
+    /**
+     * Calculates the true heading on the fly based on a given location.
+     * @param location the location to use for calculating the geomagnetic declination
+     * @return the calculated true heading or null if magnetic heading is not yet available
+     */
+    fun getTrueHeading(location: Location): Float? {
+        return magneticHeading?.let { mh ->
+            val geoField = GeomagneticField(
+                location.latitude.toFloat(),
+                location.longitude.toFloat(),
+                location.altitude.toFloat(),
+                location.time
+            )
+            (mh + geoField.declination + 360) % 360
         }
     }
 
@@ -112,6 +106,10 @@ internal class IONGLOCSensorHandler(context: Context) : SensorEventListener {
         }
     }
 
+    /**
+     * Uses SensorManager accuracy status as a heuristic proxy for heading accuracy,
+     * as Android does not provide direct heading accuracy in degrees for the magnetometer.
+     */
     private fun getHeadingAccuracy(accuracy: Int): Float {
         return when (accuracy) {
             SensorManager.SENSOR_STATUS_ACCURACY_HIGH -> 10f

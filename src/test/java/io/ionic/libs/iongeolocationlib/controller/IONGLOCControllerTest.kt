@@ -124,7 +124,7 @@ class IONGLOCControllerTest {
         )
 
         every { sensorHandler.magneticHeading } returns null
-        every { sensorHandler.trueHeading } returns null
+        every { sensorHandler.getTrueHeading(any()) } returns null
         every { sensorHandler.headingAccuracy } returns null
         every { sensorHandler.start() } just runs
         every { sensorHandler.stop() } just runs
@@ -380,7 +380,7 @@ class IONGLOCControllerTest {
         runTest {
             givenSuccessConditions()
             every { sensorHandler.magneticHeading } returns 100f
-            every { sensorHandler.trueHeading } returns 110f
+            every { sensorHandler.getTrueHeading(any()) } returns 110f
             every { sensorHandler.headingAccuracy } returns 5f
 
             sut.addWatch(mockk<Activity>(), locationOptions, "1").test {

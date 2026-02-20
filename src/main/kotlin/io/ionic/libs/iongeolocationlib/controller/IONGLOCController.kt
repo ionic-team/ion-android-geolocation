@@ -223,7 +223,7 @@ class IONGLOCController internal constructor(
             val locationResultList = locations.map { 
                 it.toOSLocationResult(
                     magneticHeading = sensorHandler.magneticHeading,
-                    trueHeading = sensorHandler.trueHeading,
+                    trueHeading = sensorHandler.getTrueHeading(it),
                     headingAccuracy = sensorHandler.headingAccuracy
                 ) 
             }
@@ -237,7 +237,6 @@ class IONGLOCController internal constructor(
                 options,
                 useFallback = useFallback
             ) { 
-                it.lastOrNull()?.let { last -> sensorHandler.updateLocation(last) }
                 onNewLocations(it) 
             }
         } catch (e: Exception) {

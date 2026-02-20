@@ -120,9 +120,7 @@ class IONGLOCSensorHandlerTest {
         every { location.longitude } returns -122.4194
         every { location.altitude } returns 0.0
 
-        sensorHandler.updateLocation(location)
-
-        assertNotNull(sensorHandler.trueHeading)
+        assertNotNull(sensorHandler.getTrueHeading(location))
         assertNotNull(sensorHandler.magneticHeading)
     }
 
@@ -134,20 +132,6 @@ class IONGLOCSensorHandlerTest {
         // Use reflection to set values since setters are not available/mockable easily on final field
         val valuesField = SensorEvent::class.java.getField("values")
         valuesField.isAccessible = true
-        // Set the mock's values field to our array. 
-        // Note: In a real SensorEvent, this is a final float[], but mockk objects might behave differently.
-        // Actually, we can just mock the property access if it's a property in Kotlin, but SensorEvent.values is a public field in Java.
-        // MockK cannot easily mock public fields. We have to instantiate a real SensorEvent or use Unsafe.
-        // Easier approach: Just rely on the fact that onSensorChanged reads event.values. 
-        // We can't easily mock field access on a mock object.
-        // Alternative: Create a real SensorEvent via reflection constructor if possible, or use a helper.
-        // Limitation: SensorEvent has package-private constructor.
-        
-        // Let's try mocking the field access using every { } is not possible for fields.
-        // The simplest way to test onSensorChanged logic logic involving values is to wrap the logic 
-        // or accept that we can't fully unit test `onSensorChanged` without instrumentation or Robolectric.
-        // However, we CAN write to the field of the mock object!
-        
         valuesField.set(sensorEvent, values)
         
         val sensorField = SensorEvent::class.java.getField("sensor")
