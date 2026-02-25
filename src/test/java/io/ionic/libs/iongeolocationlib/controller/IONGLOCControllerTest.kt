@@ -416,6 +416,7 @@ class IONGLOCControllerTest {
             expectNoEvents()
         }
         verify { fusedLocationProviderClient.removeLocationUpdates(locationCallback) }
+        verify { sensorHandler.stop() }
     }
 
     @Test
@@ -427,6 +428,7 @@ class IONGLOCControllerTest {
 
         assertFalse(result)
         verify(inverse = true) { fusedLocationProviderClient.removeLocationUpdates(any<LocationCallback>()) }
+        verify { sensorHandler.stop() }
     }
 
     @Test

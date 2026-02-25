@@ -247,7 +247,6 @@ class IONGLOCController internal constructor(
 
         awaitClose {
             watchChannels.remove(watchId)
-            sensorHandler.stop()
             Log.d(LOG_TAG, "channel closed")
         }
     }
@@ -336,6 +335,9 @@ class IONGLOCController internal constructor(
     private fun clearWatch(id: String, addToBlackList: Boolean): Boolean {
         watchChannels.remove(id)?.close()
         val watchHandler = watchLocationHandlers.remove(key = id)
+
+        sensorHandler.stop()
+        
         return when (watchHandler) {
             is LocationHandler.Callback -> {
                 googleServicesHelper.removeLocationUpdates(watchHandler.callback)
