@@ -71,7 +71,6 @@ class IONGLOCController internal constructor(
     )
 
     private lateinit var resolveLocationSettingsResultFlow: MutableSharedFlow<Result<Unit>>
-    private val watchChannels: MutableMap<String, kotlinx.coroutines.channels.SendChannel<Result<List<IONGLOCLocationResult>>>> = mutableMapOf()
     private val watchLocationHandlers: MutableMap<String, LocationHandler> = mutableMapOf()
     private val watchIdsBlacklist: MutableList<String> = mutableListOf()
 
@@ -231,7 +230,6 @@ class IONGLOCController internal constructor(
             trySend(Result.success(locationResultList))
         }
 
-        watchChannels[watchId] = this
         sensorHandler.start()
         try {
             requestLocationUpdates(
@@ -246,7 +244,6 @@ class IONGLOCController internal constructor(
         }
 
         awaitClose {
-            watchChannels.remove(watchId)
             Log.d(LOG_TAG, "channel closed")
         }
     }
@@ -333,7 +330,6 @@ class IONGLOCController internal constructor(
      * @return true if watch was cleared, false if watch was not found
      */
     private fun clearWatch(id: String, addToBlackList: Boolean): Boolean {
-        watchChannels.remove(id)?.close()
         val watchHandler = watchLocationHandlers.remove(key = id)
 
         sensorHandler.stop()
