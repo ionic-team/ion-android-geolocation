@@ -55,16 +55,27 @@ internal fun sendResultWithGoogleServicesException(
  * Extension function to convert Location object into OSLocationResult object
  * @return OSLocationResult object
  */
-internal fun Location.toOSLocationResult(): IONGLOCLocationResult = IONGLOCLocationResult(
-    latitude = this.latitude,
-    longitude = this.longitude,
-    altitude = this.altitude,
-    accuracy = this.accuracy,
-    altitudeAccuracy = if (IONGLOCBuildConfig.getAndroidSdkVersionCode() >= Build.VERSION_CODES.O) this.verticalAccuracyMeters else null,
-    heading = this.bearing,
-    speed = this.speed,
-    timestamp = this.time
-)
+internal fun Location.toOSLocationResult(
+    magneticHeading: Float? = null,
+    trueHeading: Float? = null,
+    headingAccuracy: Float? = null
+): IONGLOCLocationResult {
+    val course = if (this.hasBearing()) this.bearing else null
+    return IONGLOCLocationResult(
+        latitude = this.latitude,
+        longitude = this.longitude,
+        altitude = this.altitude,
+        accuracy = this.accuracy,
+        altitudeAccuracy = if (IONGLOCBuildConfig.getAndroidSdkVersionCode() >= Build.VERSION_CODES.O) this.verticalAccuracyMeters else null,
+        heading = trueHeading ?: magneticHeading ?: course ?: -1f,
+        speed = this.speed,
+        timestamp = this.time,
+        magneticHeading = magneticHeading,
+        trueHeading = trueHeading,
+        headingAccuracy = headingAccuracy,
+        course = course
+    )
+}
 
 /**
  * Flow extension to either emit its values, or emit a timeout error if [timeoutMillis] is reached before any emission

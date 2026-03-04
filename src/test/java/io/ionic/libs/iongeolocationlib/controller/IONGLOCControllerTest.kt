@@ -61,6 +61,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -84,6 +85,8 @@ class IONGLOCControllerTest {
         )
     )
     private val fallbackHelper = spyk(IONGLOCFallbackHelper(locationManager, connectivityManager))
+
+    private val sensorHandler = mockk<IONGLOCSensorHandler>(relaxed = true)
 
     private val mockAndroidLocation = mockkLocation()
     private val locationSettingsTask = mockk<Task<LocationSettingsResponse>>(relaxed = true)
@@ -116,8 +119,15 @@ class IONGLOCControllerTest {
             connectivityManager = connectivityManager,
             activityLauncher = activityResultLauncher,
             googleServicesHelper = googleServicesHelper,
-            fallbackHelper = fallbackHelper
+            fallbackHelper = fallbackHelper,
+            sensorHandler = sensorHandler
         )
+
+        every { sensorHandler.magneticHeading } returns null
+        every { sensorHandler.getTrueHeading(any()) } returns null
+        every { sensorHandler.headingAccuracy } returns null
+        every { sensorHandler.start() } just runs
+        every { sensorHandler.stop() } just runs
     }
 
     @After
@@ -239,6 +249,7 @@ class IONGLOCControllerTest {
                 )
             }
         }
+
     // endregion getCurrentLocation tests
 
     // region addWatch tests
@@ -363,6 +374,31 @@ class IONGLOCControllerTest {
                 awaitComplete()
             }
         }
+
+    @Test
+    fun `given sensor handler has data, when addWatch is called, result includes sensor data`() =
+        runTest {
+            givenSuccessConditions()
+            every { sensorHandler.magneticHeading } returns 100f
+            every { sensorHandler.getTrueHeading(any()) } returns 110f
+            every { sensorHandler.headingAccuracy } returns 5f
+
+            sut.addWatch(mockk<Activity>(), locationOptions, "1").test {
+                advanceTimeBy(locationOptionsWithFallback.timeout / 2)
+                emitLocationsGMS(listOf(mockAndroidLocation))
+                val result = awaitItem()
+
+                assertTrue(result.isSuccess)
+                val locations = result.getOrNull()
+                assertNotNull(locations)
+                val location = locations?.first()
+                assertEquals(100f, location?.magneticHeading)
+                assertEquals(110f, location?.trueHeading)
+                assertEquals(5f, location?.headingAccuracy)
+                // Heading should prefer trueHeading
+                assertEquals(110f, location?.heading)
+            }
+        }
     // endregion addWatch tests
 
     // region clearWatch tests
@@ -380,6 +416,7 @@ class IONGLOCControllerTest {
             expectNoEvents()
         }
         verify { fusedLocationProviderClient.removeLocationUpdates(locationCallback) }
+        verify { sensorHandler.stop() }
     }
 
     @Test
@@ -391,6 +428,7 @@ class IONGLOCControllerTest {
 
         assertFalse(result)
         verify(inverse = true) { fusedLocationProviderClient.removeLocationUpdates(any<LocationCallback>()) }
+        verify { sensorHandler.stop() }
     }
 
     @Test
@@ -524,9 +562,7 @@ class IONGLOCControllerTest {
     fun `given SETTINGS_CHANGE_UNAVAILABLE error and network+location disabled and enableLocationManagerFallback=true, when getCurrentLocation is called, IONGLOCLocationAndNetworkDisabledException is returned`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
-            coEvery { locationSettingsTask.await() } throws mockk<ApiException> {
-                every { message } returns "8502: SETTINGS_CHANGE_UNAVAILABLE"
-            }
+            coEvery { locationSettingsTask.await() } throws ApiException(Status(8502, "SETTINGS_CHANGE_UNAVAILABLE"))
             every { LocationManagerCompat.isLocationEnabled(any()) } returns false
 
             val result = sut.getCurrentPosition(mockk<Activity>(), locationOptionsWithFallback)
@@ -738,6 +774,7 @@ class IONGLOCControllerTest {
             every { bearing } returns 4.0f
             every { speed } returns 0.2f
             every { time } returns 1L
+            every { hasBearing() } returns true
             overrideDefaultMocks()
         }
 
@@ -780,7 +817,8 @@ class IONGLOCControllerTest {
             altitudeAccuracy = 1.5f,
             heading = 4.0f,
             speed = 0.2f,
-            timestamp = 1L
+            timestamp = 1L,
+            course = 4.0f
         )
     }
 }

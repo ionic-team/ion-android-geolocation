@@ -55,7 +55,8 @@ class IONGLOCController internal constructor(
     ),
     private val fallbackHelper: IONGLOCFallbackHelper = IONGLOCFallbackHelper(
         locationManager, connectivityManager
-    )
+    ),
+    private val sensorHandler: IONGLOCSensorHandler
 ) {
 
     constructor(
@@ -65,7 +66,8 @@ class IONGLOCController internal constructor(
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(context),
         locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager,
         connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager,
-        activityLauncher = activityLauncher
+        activityLauncher = activityLauncher,
+        sensorHandler = IONGLOCSensorHandler(context)
     )
 
     private lateinit var resolveLocationSettingsResultFlow: MutableSharedFlow<Result<Unit>>
@@ -97,7 +99,8 @@ class IONGLOCController internal constructor(
                     } else {
                         googleServicesHelper.getCurrentLocation(options)
                     }
-                Result.success(location.toOSLocationResult())
+                val result = location.toOSLocationResult()
+                Result.success(result)
             }
         } catch (exception: Exception) {
             Log.d(LOG_TAG, "Error fetching location: ${exception.message}")
@@ -217,16 +220,25 @@ class IONGLOCController internal constructor(
     ): Flow<Result<List<IONGLOCLocationResult>>> = callbackFlow {
         fun onNewLocations(locations: List<Location>) {
             if (checkWatchInBlackList(watchId)) return
-            val locationResultList = locations.map { it.toOSLocationResult() }
+            val locationResultList = locations.map { 
+                it.toOSLocationResult(
+                    magneticHeading = sensorHandler.magneticHeading,
+                    trueHeading = sensorHandler.getTrueHeading(it),
+                    headingAccuracy = sensorHandler.headingAccuracy
+                ) 
+            }
             trySend(Result.success(locationResultList))
         }
 
+        sensorHandler.start()
         try {
             requestLocationUpdates(
                 watchId,
                 options,
                 useFallback = useFallback
-            ) { onNewLocations(it) }
+            ) { 
+                onNewLocations(it) 
+            }
         } catch (e: Exception) {
             trySend(Result.failure(e))
         }
@@ -319,6 +331,9 @@ class IONGLOCController internal constructor(
      */
     private fun clearWatch(id: String, addToBlackList: Boolean): Boolean {
         val watchHandler = watchLocationHandlers.remove(key = id)
+
+        sensorHandler.stop()
+        
         return when (watchHandler) {
             is LocationHandler.Callback -> {
                 googleServicesHelper.removeLocationUpdates(watchHandler.callback)
