@@ -31,7 +31,7 @@ internal class IONGLOCFallbackHelper(
      */
     @SuppressLint("MissingPermission")
     internal suspend fun getCurrentLocation(options: IONGLOCLocationOptions): Location = try {
-        withTimeout(options.timeout) {
+        withTimeout(timeMillis = options.timeout) {
             suspendCancellableCoroutine { continuation ->
                 getValidCachedLocation(options)?.let { validCacheLocation ->
                     continuation.resume(validCacheLocation)
