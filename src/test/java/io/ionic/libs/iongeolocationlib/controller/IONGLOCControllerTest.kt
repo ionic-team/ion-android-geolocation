@@ -232,6 +232,28 @@ class IONGLOCControllerTest {
         }
 
     @Test
+    fun `given location is off and user does not resolve location settings, when getCurrentLocation is called with enableLocationFallback=True, IONGLOCRequestDeniedException returned`() =
+        runTest {
+            givenSuccessConditions() // to instantiate mocks
+            givenResolvableApiException(Activity.RESULT_CANCELED)
+            // unlike the test above for enableLocationFallback=false
+            //  this line is explicitly needed, because otherwise
+            //  the SUT would not assume resolving is needed for the fallback
+            //  and would try to await a location (which is the bug that gets fixed by
+            //  https://github.com/ionic-team/ion-android-geolocation/pull/12)
+            every { LocationManagerCompat.isLocationEnabled(any()) } returns false
+
+            val result = sut.getCurrentPosition(
+                mockk<Activity>(),
+                locationOptions.copy(enableLocationManagerFallback = true)
+            )
+            testScheduler.advanceTimeBy(DELAY)
+
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull() is IONGLOCException.IONGLOCRequestDeniedException)
+        }
+
+    @Test
     fun `given location settings check fails, when getCurrentLocation is called, IONGLOCSettingsException is returned`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
@@ -562,7 +584,12 @@ class IONGLOCControllerTest {
     fun `given SETTINGS_CHANGE_UNAVAILABLE error and network+location disabled and enableLocationManagerFallback=true, when getCurrentLocation is called, IONGLOCLocationAndNetworkDisabledException is returned`() =
         runTest {
             givenSuccessConditions() // to instantiate mocks
-            coEvery { locationSettingsTask.await() } throws ApiException(Status(8502, "SETTINGS_CHANGE_UNAVAILABLE"))
+            coEvery { locationSettingsTask.await() } throws ApiException(
+                Status(
+                    8502,
+                    "SETTINGS_CHANGE_UNAVAILABLE"
+                )
+            )
             every { LocationManagerCompat.isLocationEnabled(any()) } returns false
 
             val result = sut.getCurrentPosition(mockk<Activity>(), locationOptionsWithFallback)

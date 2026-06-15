@@ -389,12 +389,13 @@ class IONGLOCController internal constructor(
     }
 
     /**
-     * @return true if the the settings result is such that the location request must fail
+     * @return true if the settings result is such that the location request must fail
      *  (even if enableLocationManagerFallback=true), or false otherwise
      */
     private fun Result<Unit>.shouldNotProceed(options: IONGLOCLocationOptions): Boolean =
         isFailure && (!options.enableLocationManagerFallback ||
-                exceptionOrNull() is IONGLOCException.IONGLOCLocationAndNetworkDisabledException)
+                exceptionOrNull() is IONGLOCException.IONGLOCLocationAndNetworkDisabledException ||
+                exceptionOrNull() is IONGLOCException.IONGLOCRequestDeniedException)
 
     companion object {
         private const val LOG_TAG = "IONGeolocationController"
