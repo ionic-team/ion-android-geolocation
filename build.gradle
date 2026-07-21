@@ -43,6 +43,10 @@ android {
     namespace "io.ionic.libs.iongeolocationlib"
     compileSdk 36
 
+    sourceSets {
+        main.java.srcDir 'src/compat/kotlin'
+    }
+
     defaultConfig {
         minSdk 23
         targetSdk 36
@@ -110,10 +114,18 @@ android {
 repositories {
     google()
     mavenCentral()
+    flatDir { dirs 'libs' }
 }
 
 dependencies {
     implementation 'androidx.core:core-ktx:1.13.1'
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    if (System.getenv("SHOULD_PUBLISH") == "true") {
+        api 'io.ionic.libs:ionnativeislands-android:1.0.0'
+    } else {
+        compileOnly(name: 'ionnativeislands-android-release', ext: 'aar')
+        testImplementation(name: 'ionnativeislands-android-release', ext: 'aar')
+    }
 
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'

@@ -1,0 +1,62 @@
+plugins {
+    id 'com.android.library' version '9.2.1'
+}
+
+android {
+    namespace = "io.ionic.libs.iongeolocationlib"
+    compileSdk = 37
+
+    sourceSets {
+        main {
+            kotlin.srcDirs = ['../src/main/kotlin', 'src/main/kotlin']
+            manifest.srcFile 'src/main/AndroidManifest.xml'
+        }
+    }
+
+    defaultConfig {
+        minSdk = 24
+        targetSdk = 37
+        versionCode = 4
+        versionName = "2.2.1"
+
+        aarMetadata {
+            minCompileSdk = 37
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled = false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    packaging {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+    }
+
+    lint {
+        abortOnError = false
+    }
+}
+
+dependencies {
+    compileOnly files('../libs/ionnativeislands-android-release.aar')
+
+    implementation 'androidx.core:core-ktx:1.18.0'
+    implementation 'androidx.core.locationbutton:locationbutton:1.0.0-alpha01'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4'
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
+    implementation 'com.google.android.gms:play-services-base:18.5.0'
+    implementation 'androidx.activity:activity:1.6.0'
+    implementation 'androidx.activity:activity-ktx:1.9.3'
+}

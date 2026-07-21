@@ -12,6 +12,7 @@ The `IONGLOCController` class provides the main features of the Library, which a
 
 - [Motivation](#motivation)
 - [Usage](#usage)
+- [Location Button](#location-button)
 - [Methods](#methods)
     - [Obtain the current location of the device](#obtain-the-current-location-of-the-device)
     - [Add a watch for periodic location updates](#add-a-watch-for-periodic-location-updates)
@@ -34,6 +35,14 @@ In your app-level gradle file, import the `ion-android-geolocation` library like
     	implementation("io.ionic.libs:iongeolocation-android:2.2.1")
 	}
 ```
+
+## Location Button
+
+`IONGLOCLocationButtonRegistry.register(activity, requester)` registers the
+`os.locationButton` native component. The host plugin supplies the precise-location
+permission requester and exposes the corresponding web component.
+
+The component emits `grant`, `position`, and `buttonError` events.
 
 ## Methods
 
