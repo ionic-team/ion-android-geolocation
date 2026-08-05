@@ -272,6 +272,74 @@ class IONGLOCControllerTest {
             }
         }
 
+    @Test
+    fun `given two concurrent getCurrentPosition calls both need location settings resolved, when user accepts, both calls receive the location`() =
+        runTest {
+            givenSuccessConditions()
+            coEvery { locationSettingsTask.await() } throws mockk<ResolvableApiException> {
+                every { resolution } returns mockk<PendingIntent>(relaxed = true)
+            }
+            // Simulate Android behaviour: only one activity result callback fires regardless of
+            // how many times the launcher is invoked (e.g. a second overlapping call).
+            var launched = false
+            val testScope = this
+            coEvery { activityResultLauncher.launch(any()) } coAnswers {
+                if (!launched) {
+                    launched = true
+                    testScope.launch {
+                        delay(DELAY)
+                        sut.onResolvableExceptionResult(Activity.RESULT_OK)
+                    }
+                }
+            }
+
+            val deferred1 = async { sut.getCurrentPosition(mockk<Activity>(), locationOptions) }
+            val deferred2 = async { sut.getCurrentPosition(mockk<Activity>(), locationOptions) }
+            runCurrent() // let both coroutines start and suspend on resolveLocationSettingsResultFlow.first()
+            advanceTimeBy(DELAY) // fire onResolvableExceptionResult; shared flow notifies both
+
+            val result1 = deferred1.await()
+            val result2 = deferred2.await()
+
+            assertTrue(result1.isSuccess)
+            assertEquals(locationResult, result1.getOrNull())
+            assertTrue(result2.isSuccess)
+            assertEquals(locationResult, result2.getOrNull())
+        }
+
+    @Test
+    fun `given two concurrent getCurrentPosition calls both need location settings resolved, when user denies, both calls receive IONGLOCRequestDeniedException`() =
+        runTest {
+            givenSuccessConditions()
+            coEvery { locationSettingsTask.await() } throws mockk<ResolvableApiException> {
+                every { resolution } returns mockk<PendingIntent>(relaxed = true)
+            }
+            var launched = false
+            val testScope = this
+            coEvery { activityResultLauncher.launch(any()) } coAnswers {
+                if (!launched) {
+                    launched = true
+                    testScope.launch {
+                        delay(DELAY)
+                        sut.onResolvableExceptionResult(Activity.RESULT_CANCELED)
+                    }
+                }
+            }
+
+            val deferred1 = async { sut.getCurrentPosition(mockk<Activity>(), locationOptions) }
+            val deferred2 = async { sut.getCurrentPosition(mockk<Activity>(), locationOptions) }
+            runCurrent()
+            advanceTimeBy(DELAY)
+
+            val result1 = deferred1.await()
+            val result2 = deferred2.await()
+
+            assertTrue(result1.isFailure)
+            assertTrue(result1.exceptionOrNull() is IONGLOCException.IONGLOCRequestDeniedException)
+            assertTrue(result2.isFailure)
+            assertTrue(result2.exceptionOrNull() is IONGLOCException.IONGLOCRequestDeniedException)
+        }
+
     // endregion getCurrentLocation tests
 
     // region addWatch tests
