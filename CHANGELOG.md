@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.2]
+
+### 2026-08-04
+
+- Fix: The result of the enable-location dialog was delivered only to the most recent request, leaving earlier concurrent requests waiting forever [RMET-5383](https://outsystemsrd.atlassian.net/browse/RMET-5383).
+
 ## [2.2.1]
 
 ### 2026-06-15

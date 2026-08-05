@@ -70,7 +70,7 @@ class IONGLOCController internal constructor(
         sensorHandler = IONGLOCSensorHandler(context)
     )
 
-    private lateinit var resolveLocationSettingsResultFlow: MutableSharedFlow<Result<Unit>>
+    private val resolveLocationSettingsResultFlow = MutableSharedFlow<Result<Unit>>()
     private val watchLocationHandlers: MutableMap<String, LocationHandler> = mutableMapOf()
     private val watchIdsBlacklist: MutableList<String> = mutableListOf()
 
@@ -275,7 +275,6 @@ class IONGLOCController internal constructor(
             return Result.failure(playServicesResult.exceptionOrNull() ?: NullPointerException())
         }
 
-        resolveLocationSettingsResultFlow = MutableSharedFlow()
         val locationSettingsResult = googleServicesHelper.checkLocationSettings(
             activity,
             options.copy(timeout = if (isSingleLocationRequest) 0 else options.timeout),
