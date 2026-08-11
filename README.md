@@ -32,7 +32,7 @@ In your app-level gradle file, import the `ion-android-geolocation` library like
 
 ```
     dependencies {
-    	implementation("io.ionic.libs:iongeolocation-android:2.2.1")
+    	implementation("io.ionic.libs:iongeolocation-android:2.2.2")
 	}
 ```
 

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add a Native Islands Location Button component with grant, position, and error
   events.
 
+## [2.2.2]
+
+### 2026-08-04
+
+- Fix: The result of the enable-location dialog was delivered only to the most recent request, leaving earlier concurrent requests waiting forever [RMET-5383](https://outsystemsrd.atlassian.net/browse/RMET-5383).
+
 ## [2.2.1]
 
 ### 2026-06-15
