@@ -2,7 +2,7 @@ package io.ionic.libs.iongeolocationlib.view
 
 import android.app.Activity
 import android.content.Context
-import io.ionic.libs.ionnativeislandslib.NativeIsland
+import io.ionic.libs.iongeolocationlib.controller.IONGLOCController
 import io.ionic.libs.ionnativeislandslib.NativeIslandAccessibility
 import io.ionic.libs.ionnativeislandslib.NativeIslandsRegistry
 import java.lang.ref.WeakReference
@@ -15,19 +15,16 @@ fun interface IONGLOCLocationButtonPermissionRequester {
 
 /** Registers the location button and its host permission callback. */
 object IONGLOCLocationButtonRegistry {
-    private val factory: (Context, Activity) -> NativeIsland =
-        { context, activity -> IONGLOCLocationButtonIsland(context, activity) }
-
     private val permissionRequesters =
         WeakHashMap<Activity, WeakReference<IONGLOCLocationButtonPermissionRequester>>()
 
     @JvmStatic
-    fun register() {
+    fun register(controller: IONGLOCController) {
         NativeIslandsRegistry.register(
             componentName = "os.locationButton",
             accessibility = NativeIslandAccessibility.NATIVE,
             requiresUnobscuredSurface = requiresUnobscuredSurface(),
-            factory = factory,
+            factory = { context, activity -> IONGLOCLocationButtonIsland(context, activity, controller) },
         )
     }
 
@@ -38,12 +35,13 @@ object IONGLOCLocationButtonRegistry {
     @JvmStatic
     fun register(
         activity: Activity,
+        controller: IONGLOCController,
         requester: IONGLOCLocationButtonPermissionRequester,
     ) {
         synchronized(permissionRequesters) {
             permissionRequesters[activity] = WeakReference(requester)
         }
-        register()
+        register(controller)
     }
 
     @JvmStatic

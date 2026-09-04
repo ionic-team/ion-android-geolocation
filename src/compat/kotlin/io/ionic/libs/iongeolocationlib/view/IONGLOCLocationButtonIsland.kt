@@ -1,7 +1,6 @@
 package io.ionic.libs.iongeolocationlib.view
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
@@ -9,10 +8,6 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
-import android.location.Location
-import android.location.LocationManager
-import android.os.CancellationSignal
-import android.os.SystemClock
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -24,35 +19,52 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.drawable.DrawableCompat
-import androidx.core.location.LocationManagerCompat
 import io.ionic.libs.iongeolocationlib.R
+import io.ionic.libs.iongeolocationlib.controller.IONGLOCController
+import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
+import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
 import io.ionic.libs.ionnativeislandslib.NativeIsland
 import io.ionic.libs.ionnativeislandslib.NativeIslandEventEmitting
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * AppCompat implementation of `os.locationButton`. It requests precise
- * permission through its adapter and reads coordinates directly from
- * [LocationManager].
+ * permission through its adapter and delegates location retrieval to
+ * [IONGLOCController.getCurrentPosition].
  */
 class IONGLOCLocationButtonIsland(
     private val context: Context,
     private val activity: Activity,
+    private val controller: IONGLOCController,
 ) : NativeIsland, NativeIslandEventEmitting {
 
     companion object {
         @JvmStatic
         fun requiresUnobscuredSurface() = false
+
+        private val FETCH_OPTIONS = IONGLOCLocationOptions(
+            timeout = 30_000L,
+            maximumAge = 2 * 60 * 1000L,
+            enableHighAccuracy = true,
+            enableLocationManagerFallback = false,
+        )
     }
 
     override var eventSink: ((String, Map<String, Any?>) -> Unit)? = null
 
     private val density = context.resources.displayMetrics.density
+    private val coroutineScope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private var resumed = false
     private var destroyed = false
     private var permissionRequestPending = false
     private var permissionRequestGeneration = 0L
     private var pendingPermissionResult: Boolean? = null
-    private var currentFetch: CancellationSignal? = null
+    private var currentFetchJob: Job? = null
 
     private var textType = "precise-location"
     private var backgroundColor = Color.rgb(11, 87, 208)
@@ -111,6 +123,7 @@ class IONGLOCLocationButtonIsland(
         destroyed = true
         resumed = false
         cancelOutstandingWork()
+        coroutineScope.cancel()
         button.setOnClickListener(null)
     }
 
@@ -179,7 +192,7 @@ class IONGLOCLocationButtonIsland(
         }
 
     private fun requestPreciseLocation() {
-        if (!resumed || destroyed || permissionRequestPending || currentFetch != null) return
+        if (!resumed || destroyed || permissionRequestPending || currentFetchJob != null) return
 
         if (
             ContextCompat.checkSelfPermission(
@@ -246,72 +259,19 @@ class IONGLOCLocationButtonIsland(
 
     /**
      * The button grants permission; it never supplies coordinates. Fetch a
-     * position directly through the public platform location API.
+     * position through the regular controller, same as `getCurrentPosition`.
      */
-    @SuppressLint("MissingPermission")
     private fun fetchPosition() {
-        if (!resumed || destroyed || currentFetch != null) return
-        val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-        if (manager == null) {
-            emitError("location manager unavailable")
-            return
+        if (!resumed || destroyed || currentFetchJob != null) return
+        currentFetchJob = coroutineScope.launch {
+            val result = controller.getCurrentPosition(activity, FETCH_OPTIONS)
+            currentFetchJob = null
+            if (destroyed || !resumed) return@launch
+            result.fold(
+                onSuccess = { emitPosition(it) },
+                onFailure = { emitError(it.message ?: "location fetch failed") },
+            )
         }
-        val enabledProviders = manager.getProviders(true)
-        val provider = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
-            .firstOrNull(enabledProviders::contains)
-            ?: enabledProviders.firstOrNull()
-        if (provider == null) {
-            emitError("no enabled location provider")
-            return
-        }
-
-        val cancellation = CancellationSignal()
-        currentFetch = cancellation
-        try {
-            LocationManagerCompat.getCurrentLocation(
-                manager,
-                provider,
-                cancellation,
-                ContextCompat.getMainExecutor(context),
-            ) { location: Location? ->
-                if (
-                    destroyed ||
-                    !resumed ||
-                    currentFetch !== cancellation ||
-                    cancellation.isCanceled
-                ) {
-                    return@getCurrentLocation
-                }
-                currentFetch = null
-                val fix = location ?: newestRecentLastKnownLocation(manager, enabledProviders)
-                if (fix == null) {
-                    emitError("no recent location fix")
-                } else {
-                    emitPosition(fix)
-                }
-            }
-        } catch (error: Exception) {
-            if (currentFetch === cancellation) currentFetch = null
-            emitError(error.message ?: "location fetch failed")
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun newestRecentLastKnownLocation(
-        manager: LocationManager,
-        providers: List<String>,
-    ): Location? {
-        val nowElapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
-        return providers
-            .mapNotNull { provider ->
-                try {
-                    manager.getLastKnownLocation(provider)
-                } catch (_: Exception) {
-                    null
-                }
-            }
-            .filter { isRecentLocationFix(it.elapsedRealtimeNanos, nowElapsedRealtimeNanos) }
-            .maxByOrNull(Location::getElapsedRealtimeNanos)
     }
 
     private fun cancelOutstandingWork() {
@@ -322,18 +282,18 @@ class IONGLOCLocationButtonIsland(
     }
 
     private fun cancelLocationFetch() {
-        currentFetch?.cancel()
-        currentFetch = null
+        currentFetchJob?.cancel()
+        currentFetchJob = null
     }
 
-    private fun emitPosition(location: Location) {
+    private fun emitPosition(location: IONGLOCLocationResult) {
         emit(
             "position",
             mapOf(
                 "latitude" to location.latitude,
                 "longitude" to location.longitude,
                 "accuracy" to location.accuracy.toDouble(),
-                "timestamp" to location.time,
+                "timestamp" to location.timestamp,
             ),
         )
     }
