@@ -37,7 +37,7 @@ class IONGLOCLocationButtonIsland(
             timeout = 30_000L,
             maximumAge = 2 * 60 * 1000L,
             enableHighAccuracy = true,
-            enableLocationManagerFallback = false,
+            enableLocationManagerFallback = true,
         )
     }
 
