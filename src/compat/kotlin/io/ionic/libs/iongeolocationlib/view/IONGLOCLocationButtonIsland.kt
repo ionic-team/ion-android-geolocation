@@ -1,9 +1,7 @@
 package io.ionic.libs.iongeolocationlib.view
 
-import android.Manifest
 import android.app.Activity
 import android.content.Context
-import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -15,22 +13,14 @@ import android.widget.LinearLayout
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatTextView
-import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.drawable.DrawableCompat
 import io.ionic.libs.iongeolocationlib.R
 import io.ionic.libs.iongeolocationlib.controller.IONGLOCController
-import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
 import io.ionic.libs.ionnativeislandslib.NativeIsland
 import io.ionic.libs.ionnativeislandslib.NativeIslandEventEmitting
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 
 /**
  * AppCompat implementation of `os.locationButton`. It requests precise
@@ -39,32 +29,28 @@ import kotlinx.coroutines.launch
  */
 class IONGLOCLocationButtonIsland(
     private val context: Context,
-    private val activity: Activity,
-    private val controller: IONGLOCController,
+    activity: Activity,
+    controller: IONGLOCController,
+    errorCodeMapper: ((Throwable) -> String?)? = null,
+    positionMapper: ((IONGLOCLocationResult) -> Map<String, Any?>)? = null,
 ) : NativeIsland, NativeIslandEventEmitting {
 
     companion object {
         @JvmStatic
         fun requiresUnobscuredSurface() = false
-
-        private val FETCH_OPTIONS = IONGLOCLocationOptions(
-            timeout = 30_000L,
-            maximumAge = 2 * 60 * 1000L,
-            enableHighAccuracy = true,
-            enableLocationManagerFallback = true,
-        )
     }
 
     override var eventSink: ((String, Map<String, Any?>) -> Unit)? = null
 
     private val density = context.resources.displayMetrics.density
-    private val coroutineScope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
-    private var resumed = false
-    private var destroyed = false
-    private var permissionRequestPending = false
-    private var permissionRequestGeneration = 0L
-    private var pendingPermissionResult: Boolean? = null
-    private var currentFetchJob: Job? = null
+    private val delegate = IONGLOCLocationButtonDelegate(
+        activity,
+        controller,
+        errorCodeMapper,
+        positionMapper,
+    ) { name, payload ->
+        eventSink?.invoke(name, payload)
+    }
 
     private var textType = "precise-location"
     private var backgroundColor = Color.rgb(11, 87, 208)
@@ -90,7 +76,7 @@ class IONGLOCLocationButtonIsland(
         isFocusable = true
         minimumWidth = minimumTouchTarget
         minimumHeight = minimumTouchTarget
-        setOnClickListener { requestPreciseLocation() }
+        setOnClickListener { delegate.requestPreciseLocation() }
         addView(iconView, LinearLayout.LayoutParams(20f.dp, 20f.dp))
         addView(labelView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, 20f.dp))
     }
@@ -105,25 +91,12 @@ class IONGLOCLocationButtonIsland(
 
     override fun update(properties: Map<String, Any?>) = applyConfig(properties)
 
-    override fun onResume() {
-        if (destroyed) return
-        resumed = true
-        pendingPermissionResult?.let { granted ->
-            pendingPermissionResult = null
-            deliverPermissionResult(granted)
-        }
-    }
+    override fun onResume() = delegate.onResume()
 
-    override fun onPause() {
-        resumed = false
-        cancelLocationFetch()
-    }
+    override fun onPause() = delegate.onPause()
 
     override fun onDestroy() {
-        destroyed = true
-        resumed = false
-        cancelOutstandingWork()
-        coroutineScope.cancel()
+        delegate.onDestroy()
         button.setOnClickListener(null)
     }
 
@@ -146,6 +119,9 @@ class IONGLOCLocationButtonIsland(
         params.dimension("clickablePadding", 4.0, 8.0)?.let {
             clickablePadding = it
         }
+        params.long("timeout", minimum = 1)?.let { delegate.timeout = it }
+        params.long("maximumAge", minimum = 0)?.let { delegate.maximumAge = it }
+        params.boolean("enableLocationFallback")?.let { delegate.enableLocationManagerFallback = it }
         renderButton()
     }
 
@@ -191,121 +167,6 @@ class IONGLOCLocationButtonIsland(
             setStroke(strokeWidth.toInt(), strokeColor)
         }
 
-    private fun requestPreciseLocation() {
-        if (!resumed || destroyed || permissionRequestPending || currentFetchJob != null) return
-
-        if (
-            ContextCompat.checkSelfPermission(
-                activity,
-                Manifest.permission.ACCESS_FINE_LOCATION,
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            emitGrantAndFetch()
-            return
-        }
-
-        val requester = IONGLOCLocationButtonRegistry.permissionRequester(activity)
-        if (requester == null) {
-            emitError("precise location permission requester unavailable")
-            return
-        }
-
-        permissionRequestPending = true
-        val generation = ++permissionRequestGeneration
-        try {
-            requester.requestPreciseLocation { preciseGranted ->
-                activity.runOnUiThread {
-                    if (
-                        destroyed ||
-                        !permissionRequestPending ||
-                        generation != permissionRequestGeneration
-                    ) {
-                        return@runOnUiThread
-                    }
-                    permissionRequestPending = false
-                    val fineGranted =
-                        preciseGranted &&
-                            ContextCompat.checkSelfPermission(
-                                activity,
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                            ) == PackageManager.PERMISSION_GRANTED
-                    if (resumed) {
-                        deliverPermissionResult(fineGranted)
-                    } else {
-                        pendingPermissionResult = fineGranted
-                    }
-                }
-            }
-        } catch (error: Exception) {
-            if (
-                permissionRequestPending &&
-                generation == permissionRequestGeneration &&
-                !destroyed
-            ) {
-                permissionRequestPending = false
-                emitError(error.message ?: "precise location permission request failed")
-            }
-        }
-    }
-
-    private fun emitGrantAndFetch() {
-        deliverPermissionResult(true)
-    }
-
-    private fun deliverPermissionResult(granted: Boolean) {
-        emit("grant", mapOf("granted" to granted))
-        if (granted) fetchPosition()
-    }
-
-    /**
-     * The button grants permission; it never supplies coordinates. Fetch a
-     * position through the regular controller, same as `getCurrentPosition`.
-     */
-    private fun fetchPosition() {
-        if (!resumed || destroyed || currentFetchJob != null) return
-        currentFetchJob = coroutineScope.launch {
-            val result = controller.getCurrentPosition(activity, FETCH_OPTIONS)
-            currentFetchJob = null
-            if (destroyed || !resumed) return@launch
-            result.fold(
-                onSuccess = { emitPosition(it) },
-                onFailure = { emitError(it.message ?: "location fetch failed") },
-            )
-        }
-    }
-
-    private fun cancelOutstandingWork() {
-        permissionRequestPending = false
-        permissionRequestGeneration += 1
-        pendingPermissionResult = null
-        cancelLocationFetch()
-    }
-
-    private fun cancelLocationFetch() {
-        currentFetchJob?.cancel()
-        currentFetchJob = null
-    }
-
-    private fun emitPosition(location: IONGLOCLocationResult) {
-        emit(
-            "position",
-            mapOf(
-                "latitude" to location.latitude,
-                "longitude" to location.longitude,
-                "accuracy" to location.accuracy.toDouble(),
-                "timestamp" to location.timestamp,
-            ),
-        )
-    }
-
-    private fun emitError(reason: String) {
-        emit("buttonError", mapOf("reason" to reason))
-    }
-
-    private fun emit(name: String, payload: Map<String, Any?>) {
-        if (!destroyed) eventSink?.invoke(name, payload)
-    }
-
     private fun Map<String, Any?>.string(name: String): String? {
         val value = this[name] ?: return null
         require(value is String) { "$name must be a string" }
@@ -346,3 +207,11 @@ private val LOCATION_BUTTON_TEXT = mapOf(
 )
 
 private val HEX_COLOR = Regex("^#[0-9A-Fa-f]{6}$")
+
+internal fun Map<String, Any?>.long(name: String, minimum: Long): Long? {
+    val value = this[name] as? Number ?: return null
+    val long = value.toLong()
+    return if (long >= minimum) long else null
+}
+
+internal fun Map<String, Any?>.boolean(name: String): Boolean? = this[name] as? Boolean

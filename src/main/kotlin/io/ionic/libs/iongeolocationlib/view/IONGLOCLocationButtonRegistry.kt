@@ -1,8 +1,8 @@
 package io.ionic.libs.iongeolocationlib.view
 
 import android.app.Activity
-import android.content.Context
 import io.ionic.libs.iongeolocationlib.controller.IONGLOCController
+import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
 import io.ionic.libs.ionnativeislandslib.NativeIslandAccessibility
 import io.ionic.libs.ionnativeislandslib.NativeIslandsRegistry
 import java.lang.ref.WeakReference
@@ -19,12 +19,18 @@ object IONGLOCLocationButtonRegistry {
         WeakHashMap<Activity, WeakReference<IONGLOCLocationButtonPermissionRequester>>()
 
     @JvmStatic
-    fun register(controller: IONGLOCController) {
+    fun register(
+        controller: IONGLOCController,
+        errorCodeMapper: ((Throwable) -> String?)? = null,
+        positionMapper: ((IONGLOCLocationResult) -> Map<String, Any?>)? = null,
+    ) {
         NativeIslandsRegistry.register(
             componentName = "os.locationButton",
             accessibility = NativeIslandAccessibility.NATIVE,
             requiresUnobscuredSurface = requiresUnobscuredSurface(),
-            factory = { context, activity -> IONGLOCLocationButtonIsland(context, activity, controller) },
+            factory = { context, activity ->
+                IONGLOCLocationButtonIsland(context, activity, controller, errorCodeMapper, positionMapper)
+            },
         )
     }
 
@@ -37,11 +43,13 @@ object IONGLOCLocationButtonRegistry {
         activity: Activity,
         controller: IONGLOCController,
         requester: IONGLOCLocationButtonPermissionRequester,
+        errorCodeMapper: ((Throwable) -> String?)? = null,
+        positionMapper: ((IONGLOCLocationResult) -> Map<String, Any?>)? = null,
     ) {
         synchronized(permissionRequesters) {
             permissionRequesters[activity] = WeakReference(requester)
         }
-        register(controller)
+        register(controller, errorCodeMapper, positionMapper)
     }
 
     @JvmStatic
