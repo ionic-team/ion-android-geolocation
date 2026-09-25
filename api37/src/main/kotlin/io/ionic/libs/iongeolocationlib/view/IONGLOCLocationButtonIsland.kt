@@ -3,8 +3,11 @@ package io.ionic.libs.iongeolocationlib.view
 import android.content.Context
 import android.app.Activity
 import android.graphics.Color
+import android.graphics.Rect
 import android.os.Build
+import android.view.SurfaceView
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.core.graphics.toColorInt
 import androidx.core.locationbutton.LocationButton
@@ -12,6 +15,7 @@ import io.ionic.libs.iongeolocationlib.controller.IONGLOCController
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
 import io.ionic.libs.ionnativeislandslib.NativeIsland
 import io.ionic.libs.ionnativeislandslib.NativeIslandEventEmitting
+import io.ionic.libs.ionnativeislandslib.NativeIslandSurfaceClip
 
 class IONGLOCLocationButtonIsland(
     private val context: Context,
@@ -19,7 +23,7 @@ class IONGLOCLocationButtonIsland(
     controller: IONGLOCController,
     errorCodeMapper: ((Throwable) -> String?)? = null,
     positionMapper: ((IONGLOCLocationResult) -> Map<String, Any?>)? = null,
-) : NativeIsland, NativeIslandEventEmitting {
+) : NativeIsland, NativeIslandEventEmitting, NativeIslandSurfaceClip {
 
     companion object {
         @JvmStatic
@@ -47,6 +51,7 @@ class IONGLOCLocationButtonIsland(
     private var pressedCornerRadius = 12f * density
     private var strokeWidth = 0f
     private var clickablePadding = 6f * density
+    private var visibleRect: Rect? = null
 
     private val button = LocationButton(context).apply {
         id = View.generateViewId()
@@ -112,6 +117,8 @@ class IONGLOCLocationButtonIsland(
                             LayoutParams.MATCH_PARENT,
                         ),
                     )
+                    button.viewTreeObserver.addOnGlobalLayoutListener { applySurfaceClip() }
+                    applySurfaceClip()
                 }
             }
         }
@@ -122,6 +129,18 @@ class IONGLOCLocationButtonIsland(
     }
 
     override val view: View get() = buttonHost
+
+    override fun setVisibleRect(rect: Rect?) {
+        if (visibleRect == rect) return
+        visibleRect = rect?.let(::Rect)
+        applySurfaceClip()
+    }
+
+    private fun applySurfaceClip() {
+        if (button.clipBounds != visibleRect) button.clipBounds = visibleRect
+        val surface = (button as ViewGroup).getChildAt(0) as? SurfaceView
+        if (surface != null && surface.clipBounds != visibleRect) surface.clipBounds = visibleRect
+    }
 
     override fun create(properties: Map<String, Any?>) = applyConfig(properties)
 
