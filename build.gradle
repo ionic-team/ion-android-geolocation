@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = "1.9.24"
+    ext.kotlin_version = "1.9.25"
     ext.jacocoVersion = '0.8.7'
     repositories {
         google()
@@ -12,7 +12,7 @@ buildscript {
         if (System.getenv("SHOULD_PUBLISH") == "true") {
             classpath("io.github.gradle-nexus:publish-plugin:1.1.0")
         }
-        classpath 'com.android.tools.build:gradle:8.12.3'
+        classpath 'com.android.tools.build:gradle:8.13.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "org.jacoco:org.jacoco.core:$jacocoVersion"
     }
@@ -44,7 +44,7 @@ android {
     compileSdk 36
 
     defaultConfig {
-        minSdk 23
+        minSdk 24
         targetSdk 36
         versionCode 5
         versionName "2.2.2"
@@ -113,20 +113,20 @@ repositories {
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.13.1'
+    implementation 'androidx.core:core-ktx:1.16.0'
 
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0'
     implementation 'com.google.android.gms:play-services-location:21.3.0'
     implementation 'com.google.android.gms:play-services-base:18.5.0'
-    implementation 'androidx.activity:activity:1.6.0'
-    implementation 'androidx.activity:activity-ktx:1.9.3'
+    implementation 'androidx.activity:activity:1.10.1'
+    implementation 'androidx.activity:activity-ktx:1.10.1'
 
     testImplementation 'junit:junit:4.13.2'
-    testImplementation 'io.mockk:mockk:1.13.4'
+    testImplementation 'io.mockk:mockk:1.13.17'
     testImplementation 'app.cash.turbine:turbine:1.2.0'
-    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0'
 }
 
 if (System.getenv("SHOULD_PUBLISH") == "true") {
