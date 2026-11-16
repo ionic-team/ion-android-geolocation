@@ -47,7 +47,7 @@ class IONGLOCLocationButtonIsland(
     private var textColor = Color.WHITE
     private var iconTint = Color.WHITE
     private var strokeColor = Color.BLACK
-    private var cornerRadius = 22f * density
+    private var cornerRadius = 16f * density
     private var pressedCornerRadius = 12f * density
     private var strokeWidth = 0f
     private var clickablePadding = 6f * density
