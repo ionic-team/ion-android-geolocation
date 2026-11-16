@@ -9,6 +9,7 @@ import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.core.graphics.toColorInt
 import androidx.core.locationbutton.LocationButton
 import io.ionic.libs.iongeolocationlib.controller.IONGLOCController
@@ -26,6 +27,7 @@ class IONGLOCLocationButtonIsland(
 ) : NativeIsland, NativeIslandEventEmitting, NativeIslandSurfaceClip {
 
     companion object {
+        @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.CINNAMON_BUN)
         @JvmStatic
         fun requiresUnobscuredSurface() = Build.VERSION.SDK_INT >= 37
     }
@@ -58,9 +60,6 @@ class IONGLOCLocationButtonIsland(
         minimumHeight = minimumTouchTarget
         setOnPermissionResultListener { granted ->
             delegate.permissionGranted(granted)
-        }
-        setOnRequestPermissionsListener {
-            delegate.requestPreciseLocation()
         }
         setOnErrorListener { error ->
             delegate.emitError(error.message ?: "location button session failed")
@@ -151,7 +150,6 @@ class IONGLOCLocationButtonIsland(
     override fun onDestroy() {
         delegate.onDestroy()
         button.setOnPermissionResultListener(null)
-        button.setOnRequestPermissionsListener(null)
         button.setOnErrorListener(null)
         button.parentActivity = null
         buttonHost.removeAllViews()

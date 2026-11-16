@@ -1,9 +1,6 @@
 package io.ionic.libs.iongeolocationlib.view
 
-import android.Manifest
 import android.app.Activity
-import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
 import io.ionic.libs.iongeolocationlib.controller.IONGLOCController
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
@@ -15,9 +12,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
- * Non-View state and logic shared by both LocationButton islands: permission requesting,
+ * Non-View state and logic of the LocationButton island: permission result handling,
  * `fetchPosition()` delegation, lifecycle-aware cancellation, and event emission.
- * Each island owns one instance and wires its own View/widget callbacks to it.
+ * The island owns one instance and wires the widget's callbacks to it.
  */
 internal class IONGLOCLocationButtonDelegate(
     private val activity: Activity,
@@ -30,8 +27,6 @@ internal class IONGLOCLocationButtonDelegate(
 
     private var resumed = false
     private var destroyed = false
-    private var permissionRequestPending = false
-    private var permissionRequestGeneration = 0L
     private var pendingPermissionResult: Boolean? = null
     private var currentFetchJob: Job? = null
 
@@ -60,50 +55,7 @@ internal class IONGLOCLocationButtonDelegate(
         coroutineScope.cancel()
     }
 
-    /** Runs the manual precise-location permission request flow, and fetches a position if granted. */
-    fun requestPreciseLocation() {
-        if (!resumed || destroyed || permissionRequestPending || currentFetchJob != null) return
-
-        if (hasFineLocationPermission()) {
-            deliverPermissionResult(true)
-            return
-        }
-
-        val requester = IONGLOCLocationButtonRegistry.permissionRequester(activity)
-        if (requester == null) {
-            emitError("precise location permission requester unavailable")
-            return
-        }
-
-        permissionRequestPending = true
-        val generation = ++permissionRequestGeneration
-        try {
-            requester.requestPreciseLocation { preciseGranted ->
-                activity.runOnUiThread {
-                    if (
-                        destroyed ||
-                        !permissionRequestPending ||
-                        generation != permissionRequestGeneration
-                    ) {
-                        return@runOnUiThread
-                    }
-                    permissionRequestPending = false
-                    permissionGranted(preciseGranted && hasFineLocationPermission())
-                }
-            }
-        } catch (error: Exception) {
-            if (
-                permissionRequestPending &&
-                generation == permissionRequestGeneration &&
-                !destroyed
-            ) {
-                permissionRequestPending = false
-                emitError(error.message ?: "precise location permission request failed")
-            }
-        }
-    }
-
-    /** Entry point for a grant result that happened elsewhere (api37's native widget dialog). */
+    /** Entry point for the permission result reported by the widget (system or library dialog). */
     fun permissionGranted(granted: Boolean) {
         activity.runOnUiThread {
             if (destroyed) return@runOnUiThread
@@ -118,12 +70,6 @@ internal class IONGLOCLocationButtonDelegate(
     fun emitError(reason: String, code: String? = null) {
         emit("buttonError", mapOf("reason" to reason, "code" to code))
     }
-
-    private fun hasFineLocationPermission(): Boolean =
-        ContextCompat.checkSelfPermission(
-            activity,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-        ) == PackageManager.PERMISSION_GRANTED
 
     private fun deliverPermissionResult(granted: Boolean) {
         emit("grant", mapOf("granted" to granted))
@@ -150,8 +96,6 @@ internal class IONGLOCLocationButtonDelegate(
     }
 
     private fun cancelOutstandingWork() {
-        permissionRequestPending = false
-        permissionRequestGeneration += 1
         pendingPermissionResult = null
         cancelLocationFetch()
     }

@@ -6,12 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-07-21
+
 - Add a Native Islands Location Button component with grant, position, and error
   events.
   
 ### 2026-10-30
 
 - Chore: Update dependencies and build tooling (Gradle 8.14.3, AGP 8.13.0, minSdk 24, androidx libraries, coroutines 1.9.0, test libraries).
+
+### 2026-11-16
+
+- BREAKING CHANGE: The library is now a single AAR that includes the Location Button, built with `compileSdk` 37. Consumers must build with `compileSdk` 37 or higher (the AAR declares `minCompileSdk = 37`). Builds on `compileSdk` 36 (MABS 12) can no longer use this library, including for the existing geolocation methods.
+- BREAKING CHANGE: The minimum supported Android version is now API 26 (`minSdk` 26, previously 24).
+- BREAKING CHANGE: Consuming builds now need Android Gradle Plugin 9.1 or higher and Kotlin 2.1 or higher, as required by `androidx.core.locationbutton`. The library is built with Kotlin 2.2 and depends on `kotlin-stdlib` 2.2.x.
+- Feature: Depend on `androidx.core.locationbutton:locationbutton:1.0.0-alpha01`, which is still an alpha release (the latest published), so its API may change incompatibly. The `android.permission.USE_LOCATION_BUTTON` permission is now added to the merged manifest.
+- Chore: Update build tooling (Gradle 9.4.1, AGP 9.2.1, nexus publish plugin 2.0.0, SonarQube plugin 7.6.0). The publishing script no longer uses the `-b` Gradle flag, which Gradle 9 removed.
 
 ## [2.2.2]
 
