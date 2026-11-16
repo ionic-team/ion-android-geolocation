@@ -5,7 +5,6 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.StateListDrawable
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -13,7 +12,6 @@ import android.widget.LinearLayout
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatTextView
-import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.drawable.DrawableCompat
 import io.ionic.libs.iongeolocationlib.R
@@ -58,9 +56,7 @@ class IONGLOCLocationButtonIsland(
     private var iconTint = Color.WHITE
     private var strokeColor = Color.BLACK
     private var cornerRadius = 16f * density
-    private var pressedCornerRadius = 12f * density
     private var strokeWidth = 0f
-    private var clickablePadding = 6f * density
 
     private val iconView = AppCompatImageView(context)
     private val labelView = AppCompatTextView(context).apply {
@@ -112,13 +108,7 @@ class IONGLOCLocationButtonIsland(
         params.color("iconTint")?.let { iconTint = it }
         params.color("strokeColor")?.let { strokeColor = it }
         params.dimension("cornerRadius", 0.0, 68.0)?.let { cornerRadius = it }
-        params.dimension("pressedCornerRadius", 0.0, 68.0)?.let {
-            pressedCornerRadius = it
-        }
         params.dimension("strokeWidth", 0.0, 3.0)?.let { strokeWidth = it }
-        params.dimension("clickablePadding", 4.0, 8.0)?.let {
-            clickablePadding = it
-        }
         params.long("timeout", minimum = 1)?.let { delegate.timeout = it }
         params.long("maximumAge", minimum = 0)?.let { delegate.maximumAge = it }
         params.boolean("enableLocationFallback")?.let { delegate.enableLocationManagerFallback = it }
@@ -131,22 +121,8 @@ class IONGLOCLocationButtonIsland(
         button.contentDescription = label
         labelView.setTextColor(textColor)
 
-        val padding = clickablePadding.toInt()
-        button.setPadding(padding, padding, padding, padding)
         button.backgroundTintList = null
-        button.background = StateListDrawable().apply {
-            addState(
-                intArrayOf(android.R.attr.state_pressed),
-                buttonBackground(
-                    color = ColorUtils.blendARGB(backgroundColor, Color.BLACK, 0.12f),
-                    radius = pressedCornerRadius,
-                ),
-            )
-            addState(
-                intArrayOf(),
-                buttonBackground(backgroundColor, cornerRadius),
-            )
-        }
+        button.background = buttonBackground(backgroundColor, cornerRadius)
 
         val icon = requireNotNull(
             AppCompatResources.getDrawable(context, R.drawable.iongloc_ic_location),

@@ -48,9 +48,7 @@ class IONGLOCLocationButtonIsland(
     private var iconTint = Color.WHITE
     private var strokeColor = Color.BLACK
     private var cornerRadius = 16f * density
-    private var pressedCornerRadius = 12f * density
     private var strokeWidth = 0f
-    private var clickablePadding = 6f * density
     private var visibleRect: Rect? = null
 
     private val button = LocationButton(context).apply {
@@ -171,13 +169,7 @@ class IONGLOCLocationButtonIsland(
         params.color("iconTint")?.let { iconTint = it }
         params.color("strokeColor")?.let { strokeColor = it }
         params.dimension("cornerRadius", 0.0, 68.0)?.let { cornerRadius = it }
-        params.dimension("pressedCornerRadius", 0.0, 68.0)?.let {
-            pressedCornerRadius = it
-        }
         params.dimension("strokeWidth", 0.0, 3.0)?.let { strokeWidth = it }
-        params.dimension("clickablePadding", 4.0, 8.0)?.let {
-            clickablePadding = it
-        }
         params.long("timeout", minimum = 1)?.let { delegate.timeout = it }
         params.long("maximumAge", minimum = 0)?.let { delegate.maximumAge = it }
         params.boolean("enableLocationFallback")?.let { delegate.enableLocationManagerFallback = it }
@@ -191,11 +183,8 @@ class IONGLOCLocationButtonIsland(
         button.setIconTint(iconTint)
         button.setStrokeColor(strokeColor)
         button.setCornerRadius(cornerRadius)
-        button.setPressedCornerRadius(pressedCornerRadius)
+        button.setPressedCornerRadius(cornerRadius)
         button.setStrokeWidth(strokeWidth.toInt())
-
-        val padding = clickablePadding.toInt()
-        button.setPadding(padding, padding, padding, padding)
     }
 
     private fun Map<String, Any?>.string(name: String): String? {
