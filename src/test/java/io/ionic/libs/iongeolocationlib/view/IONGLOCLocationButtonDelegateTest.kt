@@ -150,7 +150,7 @@ class IONGLOCLocationButtonDelegateTest {
     }
 
     @Test
-    fun `given no error code mapper is supplied, when the fetch fails, buttonError carries a null code`() {
+    fun `given no error code mapper is supplied, when the fetch fails, buttonError carries the default code`() {
         coEvery { controller.getCurrentPosition(any(), any()) } returns
             Result.failure(IONGLOCException.IONGLOCLocationRetrievalTimeoutException("timed out"))
 
@@ -159,7 +159,7 @@ class IONGLOCLocationButtonDelegateTest {
 
         assertEquals("grant" to mapOf("granted" to true), events[0])
         assertEquals(
-            "buttonError" to mapOf<String, Any?>("reason" to "timed out", "code" to null),
+            "buttonError" to mapOf("reason" to "timed out", "code" to "OS-PLUG-GLOC-0002"),
             events[1],
         )
     }
@@ -184,7 +184,7 @@ class IONGLOCLocationButtonDelegateTest {
     }
 
     @Test
-    fun `given an error code mapper is supplied but returns null for this exception, buttonError carries a null code`() {
+    fun `given an error code mapper is supplied but returns null for this exception, buttonError carries the default code`() {
         delegate = createDelegate(errorCodeMapper = { null })
         delegate.onResume()
         coEvery { controller.getCurrentPosition(any(), any()) } returns
@@ -194,8 +194,32 @@ class IONGLOCLocationButtonDelegateTest {
         testScheduler.advanceUntilIdle()
 
         assertEquals(
-            "buttonError" to mapOf<String, Any?>("reason" to "timed out", "code" to null),
+            "buttonError" to mapOf("reason" to "timed out", "code" to "OS-PLUG-GLOC-0002"),
             events[1],
+        )
+    }
+
+    @Test
+    fun `given the button reports an error, buttonError carries the mapper's code for it`() {
+        delegate = createDelegate(errorCodeMapper = { exception ->
+            (exception as? IONGLOCException.IONGLOCLocationButtonException)?.let { "OS-PLUG-GLOC-0019" }
+        })
+
+        delegate.emitButtonError(IONGLOCException.IONGLOCLocationButtonException("session closed"))
+
+        assertEquals(
+            listOf("buttonError" to mapOf("reason" to "session closed", "code" to "OS-PLUG-GLOC-0019")),
+            events,
+        )
+    }
+
+    @Test
+    fun `given the button reports an error and no mapper is supplied, buttonError carries the default code`() {
+        delegate.emitButtonError(IONGLOCException.IONGLOCLocationButtonException("session closed"))
+
+        assertEquals(
+            listOf("buttonError" to mapOf("reason" to "session closed", "code" to "OS-PLUG-GLOC-0002")),
+            events,
         )
     }
 

@@ -23,6 +23,11 @@ internal class IONGLOCLocationButtonDelegate(
     private val positionMapper: ((IONGLOCLocationResult) -> Map<String, Any?>)? = null,
     private val eventSink: (name: String, payload: Map<String, Any?>) -> Unit,
 ) {
+    private companion object {
+        /** Used when the host plugin's error code mapper has no code for an error. */
+        const val DEFAULT_ERROR_CODE = "OS-PLUG-GLOC-0002"
+    }
+
     private val coroutineScope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
 
     private var resumed = false
@@ -68,7 +73,12 @@ internal class IONGLOCLocationButtonDelegate(
     }
 
     fun emitError(reason: String, code: String? = null) {
-        emit("buttonError", mapOf("reason" to reason, "code" to code))
+        emit("buttonError", mapOf("reason" to reason, "code" to (code ?: DEFAULT_ERROR_CODE)))
+    }
+
+    /** Reports an error of the button itself, with the host plugin's code for it when it has one. */
+    fun emitButtonError(error: Throwable) {
+        emitError(error.message ?: "location button session failed", errorCodeMapper?.invoke(error))
     }
 
     private fun deliverPermissionResult(granted: Boolean) {

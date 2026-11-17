@@ -13,6 +13,7 @@ import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.core.graphics.toColorInt
 import androidx.core.locationbutton.LocationButton
 import io.ionic.libs.iongeolocationlib.controller.IONGLOCController
+import io.ionic.libs.iongeolocationlib.model.IONGLOCException
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
 import io.ionic.libs.ionnativeislandslib.NativeIsland
 import io.ionic.libs.ionnativeislandslib.NativeIslandEventEmitting
@@ -62,7 +63,12 @@ class IONGLOCLocationButtonIsland(
             delegate.permissionGranted(granted)
         }
         setOnErrorListener { error ->
-            delegate.emitError(error.message ?: "location button session failed")
+            delegate.emitButtonError(
+                IONGLOCException.IONGLOCLocationButtonException(
+                    error.message ?: "location button session failed",
+                    error,
+                ),
+            )
         }
     }
 
