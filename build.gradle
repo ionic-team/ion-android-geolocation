@@ -12,6 +12,7 @@ buildscript {
             classpath("io.github.gradle-nexus:publish-plugin:2.0.0")
         }
         classpath 'com.android.tools.build:gradle:9.2.1'
+        classpath 'org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.2.10'
         classpath "org.jacoco:org.jacoco.core:$jacocoVersion"
     }
 }
@@ -35,10 +36,15 @@ if (System.getenv("SHOULD_PUBLISH") == "true") {
 
 apply plugin: "com.android.library"
 apply plugin: "jacoco"
+apply plugin: "org.jetbrains.kotlin.plugin.compose"
 
 android {
     namespace "io.ionic.libs.iongeolocationlib"
     compileSdk 37
+
+    buildFeatures {
+        compose true
+    }
 
     defaultConfig {
         minSdk 26
@@ -111,7 +117,10 @@ repositories {
 
 dependencies {
     implementation 'androidx.core:core-ktx:1.16.0'
-    implementation 'androidx.core.locationbutton:locationbutton:1.0.0-alpha01'
+    // Using compose androidx library instead of views because Views has UI issues
+    // See https://issuetracker.google.com/issues/567953859
+    implementation 'androidx.core.locationbutton:locationbutton-compose:1.0.0-alpha01'
+    implementation 'androidx.compose.foundation:foundation:1.12.1'
     if (System.getenv("SHOULD_PUBLISH") == "true") {
         api 'io.ionic.libs:ionnativeislands-android:1.0.0'
     } else {
