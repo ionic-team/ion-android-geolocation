@@ -9,9 +9,11 @@ import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.core.graphics.toColorInt
 import androidx.core.locationbutton.LocationButton
 import io.ionic.libs.iongeolocationlib.controller.IONGLOCController
+import io.ionic.libs.iongeolocationlib.model.IONGLOCException
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
 import io.ionic.libs.ionnativeislandslib.NativeIsland
 import io.ionic.libs.ionnativeislandslib.NativeIslandEventEmitting
@@ -26,6 +28,7 @@ class IONGLOCLocationButtonIsland(
 ) : NativeIsland, NativeIslandEventEmitting, NativeIslandSurfaceClip {
 
     companion object {
+        @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.CINNAMON_BUN)
         @JvmStatic
         fun requiresUnobscuredSurface() = Build.VERSION.SDK_INT >= 37
     }
@@ -48,9 +51,7 @@ class IONGLOCLocationButtonIsland(
     private var iconTint = Color.WHITE
     private var strokeColor = Color.BLACK
     private var cornerRadius = 16f * density
-    private var pressedCornerRadius = 12f * density
     private var strokeWidth = 0f
-    private var clickablePadding = 6f * density
     private var visibleRect: Rect? = null
 
     private val button = LocationButton(context).apply {
@@ -61,11 +62,13 @@ class IONGLOCLocationButtonIsland(
         setOnPermissionResultListener { granted ->
             delegate.permissionGranted(granted)
         }
-        setOnRequestPermissionsListener {
-            delegate.requestPreciseLocation()
-        }
         setOnErrorListener { error ->
-            delegate.emitError(error.message ?: "location button session failed")
+            delegate.emitButtonError(
+                IONGLOCException.IONGLOCLocationButtonException(
+                    error.message ?: "location button session failed",
+                    error,
+                ),
+            )
         }
     }
 
@@ -153,7 +156,6 @@ class IONGLOCLocationButtonIsland(
     override fun onDestroy() {
         delegate.onDestroy()
         button.setOnPermissionResultListener(null)
-        button.setOnRequestPermissionsListener(null)
         button.setOnErrorListener(null)
         button.parentActivity = null
         buttonHost.removeAllViews()
@@ -171,13 +173,7 @@ class IONGLOCLocationButtonIsland(
         params.color("iconTint")?.let { iconTint = it }
         params.color("strokeColor")?.let { strokeColor = it }
         params.dimension("cornerRadius", 0.0, 68.0)?.let { cornerRadius = it }
-        params.dimension("pressedCornerRadius", 0.0, 68.0)?.let {
-            pressedCornerRadius = it
-        }
         params.dimension("strokeWidth", 0.0, 3.0)?.let { strokeWidth = it }
-        params.dimension("clickablePadding", 4.0, 8.0)?.let {
-            clickablePadding = it
-        }
         params.long("timeout", minimum = 1)?.let { delegate.timeout = it }
         params.long("maximumAge", minimum = 0)?.let { delegate.maximumAge = it }
         params.boolean("enableLocationFallback")?.let { delegate.enableLocationManagerFallback = it }
@@ -191,11 +187,8 @@ class IONGLOCLocationButtonIsland(
         button.setIconTint(iconTint)
         button.setStrokeColor(strokeColor)
         button.setCornerRadius(cornerRadius)
-        button.setPressedCornerRadius(pressedCornerRadius)
+        button.setPressedCornerRadius(cornerRadius)
         button.setStrokeWidth(strokeWidth.toInt())
-
-        val padding = clickablePadding.toInt()
-        button.setPadding(padding, padding, padding, padding)
     }
 
     private fun Map<String, Any?>.string(name: String): String? {

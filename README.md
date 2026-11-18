@@ -38,11 +38,27 @@ In your app-level gradle file, import the `ion-android-geolocation` library like
 
 ## Location Button
 
-`IONGLOCLocationButtonRegistry.register(activity, requester)` registers the
-`os.locationButton` native component. The host plugin supplies the precise-location
-permission requester and exposes the corresponding web component.
+`IONGLOCLocationButtonRegistry.register(controller, ...)` registers the
+`os.locationButton` native component. The host plugin exposes the corresponding web
+component. The permission flow is handled by the `androidx.core.locationbutton`
+`LocationButton` itself: the system button on Android 17+, and the library's own locally
+rendered button with its default permission flow on older versions (the host Activity must
+be an `ActivityResultRegistryOwner`, which `AppCompatActivity` is).
 
 The component emits `grant`, `position`, and `buttonError` events.
+
+### Requirements
+
+Since version 3.0.0, the library ships as a single AAR that includes the Location Button, so it requires:
+
+- `compileSdk` 37 or higher (apps built with MABS 13). `aarMetadata` enforces this.
+- Android Gradle Plugin 9.1 or higher and Kotlin 2.1 or higher in the consuming build, because
+  `androidx.core.locationbutton` requires them.
+- `minSdk` 26 or higher.
+
+`androidx.core.locationbutton:locationbutton` is still an **alpha** release (`1.0.0-alpha01`, the
+latest published at the time of writing) and its API may change incompatibly. The version is pinned,
+not a range.
 
 ## Methods
 

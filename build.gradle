@@ -1,5 +1,4 @@
 buildscript {
-    ext.kotlin_version = "1.9.25"
     ext.jacocoVersion = '0.8.7'
     repositories {
         google()
@@ -10,16 +9,15 @@ buildscript {
     }
     dependencies {
         if (System.getenv("SHOULD_PUBLISH") == "true") {
-            classpath("io.github.gradle-nexus:publish-plugin:1.1.0")
+            classpath("io.github.gradle-nexus:publish-plugin:2.0.0")
         }
-        classpath 'com.android.tools.build:gradle:8.13.0'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.android.tools.build:gradle:9.2.1'
         classpath "org.jacoco:org.jacoco.core:$jacocoVersion"
     }
 }
 
 plugins {
-    id "org.sonarqube" version "3.5.0.2730"
+    id "org.sonarqube" version "7.6.0.18749"
 }
 
 sonarqube {
@@ -36,26 +34,23 @@ if (System.getenv("SHOULD_PUBLISH") == "true") {
 }
 
 apply plugin: "com.android.library"
-apply plugin: "kotlin-android"
 apply plugin: "jacoco"
 
 android {
     namespace "io.ionic.libs.iongeolocationlib"
-    compileSdk 36
-
-    sourceSets {
-        main.java.srcDir 'src/compat/kotlin'
-    }
+    compileSdk 37
 
     defaultConfig {
-        minSdk 24
-        targetSdk 36
+        minSdk 26
+        targetSdk 37
         versionCode 5
         versionName "2.2.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary true
+
+        // androidx.core.locationbutton needs compileSdk 37 (MABS 13 / Capacitor 9), so consumers must too.
+        aarMetadata {
+            minCompileSdk = 37
         }
     }
 
@@ -68,9 +63,6 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = '17'
     }
 
     task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {
@@ -102,8 +94,8 @@ android {
         unitTests.returnDefaultValues = true
     }
 
-    lintOptions {
-        abortOnError false
+    lint {
+        abortOnError = false
     }
 
     publishing {
@@ -119,7 +111,7 @@ repositories {
 
 dependencies {
     implementation 'androidx.core:core-ktx:1.16.0'
-    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'androidx.core.locationbutton:locationbutton:1.0.0-alpha01'
     if (System.getenv("SHOULD_PUBLISH") == "true") {
         api 'io.ionic.libs:ionnativeislands-android:1.0.0'
     } else {

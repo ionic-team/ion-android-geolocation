@@ -9,10 +9,6 @@ task androidSourcesJar(type: Jar) {
     from android.sourceSets.main.kotlin.srcDirs
 }
 
-artifacts {
-    archives androidSourcesJar
-}
-
 group = 'io.ionic.libs'
 version = LIB_VERSION
 
