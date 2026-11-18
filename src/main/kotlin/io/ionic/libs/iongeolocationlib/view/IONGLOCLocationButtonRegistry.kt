@@ -17,8 +17,8 @@ object IONGLOCLocationButtonRegistry {
             componentName = "os.locationButton",
             accessibility = NativeIslandAccessibility.NATIVE,
             requiresUnobscuredSurface = requiresUnobscuredSurface(),
-            factory = { context, activity ->
-                IONGLOCLocationButtonIsland(context, activity, controller, errorCodeMapper, positionMapper)
+            factory = { _, activity ->
+                IONGLOCLocationButtonIsland(activity, controller, errorCodeMapper, positionMapper)
             },
         )
     }

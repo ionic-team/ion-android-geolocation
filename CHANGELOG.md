@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Feature: Depend on `androidx.core.locationbutton:locationbutton:1.0.0-alpha01`, which is still an alpha release (the latest published), so its API may change incompatibly. The `android.permission.USE_LOCATION_BUTTON` permission is now added to the merged manifest.
 - Chore: Update build tooling (Gradle 9.4.1, AGP 9.2.1, nexus publish plugin 2.0.0, SonarQube plugin 7.6.0). The publishing script no longer uses the `-b` Gradle flag, which Gradle 9 removed.
 
+### 2026-11-18
+
+- Fix: The Location Button is now the Jetpack Compose `LocationButton` (`androidx.core.locationbutton:locationbutton-compose:1.0.0-alpha01`, still an alpha release), hosted in a `ComposeView`. The Views `LocationButton` could show Google's compat button next to the system button on Android 17 ([issue tracker](https://issuetracker.google.com/issues/567953859)). The `androidx.core.locationbutton:locationbutton` dependency is no longer declared directly.
+- BREAKING CHANGE: The host Activity must be a `ComponentActivity` (`AppCompatActivity` is one), as the Compose button finds its Activity and permission launcher through it. `IONGLOCLocationButtonIsland` no longer takes a `Context` in its constructor.
+- Fix: The Location Button's layout listener is now removed when the island is destroyed.
+
 ## [2.2.2]
 
 ### 2026-08-04

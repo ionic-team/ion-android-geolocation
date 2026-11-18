@@ -40,10 +40,11 @@ In your app-level gradle file, import the `ion-android-geolocation` library like
 
 `IONGLOCLocationButtonRegistry.register(controller, ...)` registers the
 `os.locationButton` native component. The host plugin exposes the corresponding web
-component. The permission flow is handled by the `androidx.core.locationbutton`
-`LocationButton` itself: the system button on Android 17+, and the library's own locally
-rendered button with its default permission flow on older versions (the host Activity must
-be an `ActivityResultRegistryOwner`, which `AppCompatActivity` is).
+component. The button is the Jetpack Compose `LocationButton` from
+`androidx.core.locationbutton:locationbutton-compose`, hosted in a `ComposeView`. The permission
+flow is handled by that `LocationButton` itself: the system button on Android 17+, and a locally
+rendered button with its default permission flow on older versions (see the Activity requirement
+below).
 
 The component emits `grant`, `position`, and `buttonError` events.
 
@@ -55,10 +56,15 @@ Since version 3.0.0, the library ships as a single AAR that includes the Locatio
 - Android Gradle Plugin 9.1 or higher and Kotlin 2.1 or higher in the consuming build, because
   `androidx.core.locationbutton` requires them.
 - `minSdk` 26 or higher.
+- The host Activity must be a `ComponentActivity` (`AppCompatActivity` is one), because the
+  Compose button finds its Activity and the permission launcher (an `ActivityResultRegistryOwner`)
+  through it.
 
-`androidx.core.locationbutton:locationbutton` is still an **alpha** release (`1.0.0-alpha01`, the
-latest published at the time of writing) and its API may change incompatibly. The version is pinned,
-not a range.
+`androidx.core.locationbutton:locationbutton-compose` is still an **alpha** release
+(`1.0.0-alpha01`, the latest published at the time of writing) and its API may change
+incompatibly. The version is pinned, not a range. Expect
+roughly 1 MB more in an APK built with R8, and several MB more without it. The `core.locationbutton` library should
+be reviewed regularly and updated when newer (more stable) ones are published.
 
 ## Methods
 
