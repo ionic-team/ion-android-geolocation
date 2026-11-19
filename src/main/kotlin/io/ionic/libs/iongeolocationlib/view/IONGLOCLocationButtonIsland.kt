@@ -183,14 +183,13 @@ class IONGLOCLocationButtonIsland(
     }
 
     private fun applyConfig(params: Map<String, Any?>) {
-        params.string("textType")?.let {
-            require(it in LOCATION_BUTTON_TEXT_TYPES) {
-                "unsupported Location Button text type"
-            }
+        // Parse and validate every property first (each throws on an invalid value), then apply them together,
+        // so an invalid update changes nothing.
+        val textType = params.string("textType")?.also {
+            require(it in LOCATION_BUTTON_TEXT_TYPES) { "unsupported Location Button text type" }
         }
-        // Validate everything before applying, so an invalid update changes nothing.
-        config = config.copy(
-            textType = params.string("textType") ?: config.textType,
+        val newConfig = config.copy(
+            textType = textType ?: config.textType,
             backgroundColor = params.color("backgroundColor") ?: config.backgroundColor,
             textColor = params.color("textColor") ?: config.textColor,
             iconTint = params.color("iconTint") ?: config.iconTint,
@@ -198,9 +197,14 @@ class IONGLOCLocationButtonIsland(
             cornerRadius = params.dimension("cornerRadius", 0.0, 68.0) ?: config.cornerRadius,
             strokeWidth = params.dimension("strokeWidth", 0.0, 3.0) ?: config.strokeWidth,
         )
-        params.long("timeout", minimum = 1)?.let { delegate.timeout = it }
-        params.long("maximumAge", minimum = 0)?.let { delegate.maximumAge = it }
-        params.boolean("enableLocationFallback")?.let { delegate.enableLocationManagerFallback = it }
+        val timeout = params.long("timeout", minimum = 1)
+        val maximumAge = params.long("maximumAge", minimum = 0)
+        val enableLocationFallback = params.boolean("enableLocationFallback")
+
+        config = newConfig
+        timeout?.let { delegate.timeout = it }
+        maximumAge?.let { delegate.maximumAge = it }
+        enableLocationFallback?.let { delegate.enableLocationManagerFallback = it }
     }
 
     private fun Map<String, Any?>.string(name: String): String? {
@@ -253,9 +257,15 @@ private val LOCATION_BUTTON_TEXT_TYPES = mapOf(
 private val HEX_COLOR = Regex("^#[0-9A-Fa-f]{6}$")
 
 internal fun Map<String, Any?>.long(name: String, minimum: Long): Long? {
-    val value = this[name] as? Number ?: return null
-    val long = value.toLong()
-    return if (long >= minimum) long else null
+    val value = this[name] ?: return null
+    require(value is Number) { "$name must be a number" }
+    val number = value.toDouble()
+    require(number.isFinite() && number >= minimum) { "$name must be at least $minimum" }
+    return value.toLong()
 }
 
-internal fun Map<String, Any?>.boolean(name: String): Boolean? = this[name] as? Boolean
+internal fun Map<String, Any?>.boolean(name: String): Boolean? {
+    val value = this[name] ?: return null
+    require(value is Boolean) { "$name must be a boolean" }
+    return value
+}

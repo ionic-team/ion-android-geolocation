@@ -5,6 +5,7 @@ import io.ionic.libs.iongeolocationlib.controller.IONGLOCController
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationOptions
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -87,8 +88,8 @@ internal class IONGLOCLocationButtonDelegate(
     }
 
     private fun fetchPosition() {
-        if (!resumed || destroyed || currentFetchJob != null) return
-        currentFetchJob = coroutineScope.launch {
+        if (!resumed || destroyed || currentFetchJob?.isActive == true) return
+        val job = coroutineScope.launch(start = CoroutineStart.LAZY) {
             val options = IONGLOCLocationOptions(
                 timeout = timeout,
                 maximumAge = maximumAge,
@@ -96,13 +97,15 @@ internal class IONGLOCLocationButtonDelegate(
                 enableLocationManagerFallback = enableLocationManagerFallback,
             )
             val result = controller.getCurrentPosition(activity, options)
-            currentFetchJob = null
             if (destroyed || !resumed) return@launch
             result.fold(
                 onSuccess = { emitPosition(it) },
                 onFailure = { emitError(it.message ?: "location fetch failed", errorCodeMapper?.invoke(it)) },
             )
         }
+        currentFetchJob = job
+        job.invokeOnCompletion { if (currentFetchJob === job) currentFetchJob = null }
+        job.start()
     }
 
     private fun cancelOutstandingWork() {

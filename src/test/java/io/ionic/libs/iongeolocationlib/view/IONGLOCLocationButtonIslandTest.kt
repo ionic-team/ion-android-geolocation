@@ -2,6 +2,7 @@ package io.ionic.libs.iongeolocationlib.view
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class IONGLOCLocationButtonIslandTest {
@@ -21,17 +22,38 @@ class IONGLOCLocationButtonIslandTest {
     }
 
     @Test
-    fun `when long property is below minimum, null is returned`() {
+    fun `when long property is below minimum, it is rejected`() {
         val params = mapOf<String, Any?>("timeout" to -1L)
 
-        assertNull(params.long("timeout", minimum = 1))
+        assertThrows(IllegalArgumentException::class.java) { params.long("timeout", minimum = 1) }
     }
 
     @Test
-    fun `when long property is zero and minimum is one, null is returned`() {
+    fun `when long property is zero and minimum is one, it is rejected`() {
         val params = mapOf<String, Any?>("timeout" to 0L)
 
-        assertNull(params.long("timeout", minimum = 1))
+        assertThrows(IllegalArgumentException::class.java) { params.long("timeout", minimum = 1) }
+    }
+
+    @Test
+    fun `when long property is not a number, it is rejected`() {
+        val params = mapOf<String, Any?>("timeout" to "5000")
+
+        assertThrows(IllegalArgumentException::class.java) { params.long("timeout", minimum = 1) }
+    }
+
+    @Test
+    fun `when long property is not finite, it is rejected`() {
+        val params = mapOf<String, Any?>("maximumAge" to Double.NaN)
+
+        assertThrows(IllegalArgumentException::class.java) { params.long("maximumAge", minimum = 0) }
+    }
+
+    @Test
+    fun `when boolean property is not a boolean, it is rejected`() {
+        val params = mapOf<String, Any?>("enableLocationFallback" to "true")
+
+        assertThrows(IllegalArgumentException::class.java) { params.boolean("enableLocationFallback") }
     }
 
     @Test

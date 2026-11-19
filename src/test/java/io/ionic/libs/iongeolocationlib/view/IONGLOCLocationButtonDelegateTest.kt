@@ -14,6 +14,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -251,6 +252,21 @@ class IONGLOCLocationButtonDelegateTest {
         testScheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { controller.getCurrentPosition(any(), any()) }
+    }
+
+    @Test
+    fun `given a fetch completes without suspending, a later permissionGranted(true) still fetches`() {
+        // Main.immediate runs the launched block eagerly in production; an unconfined dispatcher reproduces it.
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        val eagerDelegate = createDelegate()
+        eagerDelegate.onResume()
+        coEvery { controller.getCurrentPosition(any(), any()) } returns
+            Result.failure(IONGLOCException.IONGLOCLocationRetrievalTimeoutException("fast failure"))
+
+        eagerDelegate.permissionGranted(true)
+        eagerDelegate.permissionGranted(true)
+
+        coVerify(exactly = 2) { controller.getCurrentPosition(any(), any()) }
     }
 
     // endregion
