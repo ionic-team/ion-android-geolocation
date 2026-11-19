@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3]
+
 ### 2026-10-30
 
 - Chore: Update dependencies and build tooling (Gradle 8.14.3, AGP 8.13.0, minSdk 24, androidx libraries, coroutines 1.9.0, test libraries).
