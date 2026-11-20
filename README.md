@@ -27,11 +27,13 @@ This library is used by the Geolocation Plugin for [OutSystems' Cordova Plugin](
 
 ## Usage
 
+> Replace ${version to use} below with the version you want to use. Check the Releases page for available versions.
+
 In your app-level gradle file, import the `ion-android-geolocation` library like so:
 
 ```
     dependencies {
-    	implementation("io.ionic.libs:iongeolocation-android:2.2.2")
+    	implementation("io.ionic.libs:iongeolocation-android:${version to use}")
 	}
 ```
 
