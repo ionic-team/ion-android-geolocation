@@ -50,7 +50,7 @@ The component emits `grant`, `position`, and `buttonError` events.
 
 ### Requirements
 
-Since version 3.0.0, the library ships as a single AAR that includes the Location Button, so it requires:
+Since version 4.0.0, the library ships as a single AAR that includes the Location Button, so it requires:
 
 - `compileSdk` 37 or higher (apps built with MABS 13). `aarMetadata` enforces this.
 - Android Gradle Plugin 9.1 or higher and Kotlin 2.1 or higher in the consuming build, because
