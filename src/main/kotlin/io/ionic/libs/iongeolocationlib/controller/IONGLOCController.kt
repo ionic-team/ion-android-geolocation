@@ -25,7 +25,6 @@ import io.ionic.libs.iongeolocationlib.model.internal.LocationHandler
 import io.ionic.libs.iongeolocationlib.model.internal.LocationSettingsResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
@@ -142,7 +141,7 @@ class IONGLOCController internal constructor(
      * @param watchId a unique id identifying the watch
      * @return Flow in which location updates will be emitted, or failure if something went wrong in retrieving updates
      */
-    @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun addWatch(
         activity: Activity,
         options: IONGLOCLocationOptions,

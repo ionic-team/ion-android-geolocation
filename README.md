@@ -12,6 +12,7 @@ The `IONGLOCController` class provides the main features of the Library, which a
 
 - [Motivation](#motivation)
 - [Usage](#usage)
+- [Location Button](#location-button)
 - [Methods](#methods)
     - [Obtain the current location of the device](#obtain-the-current-location-of-the-device)
     - [Add a watch for periodic location updates](#add-a-watch-for-periodic-location-updates)
@@ -34,6 +35,36 @@ In your app-level gradle file, import the `ion-android-geolocation` library like
     	implementation("io.ionic.libs:iongeolocation-android:2.2.2")
 	}
 ```
+
+## Location Button
+
+`IONGLOCLocationButtonRegistry.register(controller, ...)` registers the
+`os.locationButton` native component. The host plugin exposes the corresponding web
+component. The button is the Jetpack Compose `LocationButton` from
+`androidx.core.locationbutton:locationbutton-compose`, hosted in a `ComposeView`. The permission
+flow is handled by that `LocationButton` itself: the system button on Android 17+, and a locally
+rendered button with its default permission flow on older versions (see the Activity requirement
+below).
+
+The component emits `grant`, `position`, and `buttonError` events.
+
+### Requirements
+
+Since version 4.0.0, the library ships as a single AAR that includes the Location Button, so it requires:
+
+- `compileSdk` 37 or higher (apps built with MABS 13). `aarMetadata` enforces this.
+- Android Gradle Plugin 9.1 or higher and Kotlin 2.1 or higher in the consuming build, because
+  `androidx.core.locationbutton` requires them.
+- `minSdk` 26 or higher.
+- The host Activity must be a `ComponentActivity` (`AppCompatActivity` is one), because the
+  Compose button finds its Activity and the permission launcher (an `ActivityResultRegistryOwner`)
+  through it.
+
+`androidx.core.locationbutton:locationbutton-compose` is still an **alpha** release
+(`1.0.0-alpha01`, the latest published at the time of writing) and its API may change
+incompatibly. The version is pinned, not a range. Expect
+roughly 1 MB more in an APK built with R8, and several MB more without it. The `core.locationbutton` library should
+be reviewed regularly and updated when newer (more stable) ones are published.
 
 ## Methods
 

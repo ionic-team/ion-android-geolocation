@@ -1,5 +1,6 @@
 package io.ionic.libs.iongeolocationlib.controller.helper
 
+import android.annotation.SuppressLint
 import android.location.Location
 import android.location.LocationManager
 import android.net.ConnectivityManager
@@ -55,6 +56,7 @@ internal fun sendResultWithGoogleServicesException(
  * Extension function to convert Location object into OSLocationResult object
  * @return OSLocationResult object
  */
+@SuppressLint("NewApi")
 internal fun Location.toOSLocationResult(
     magneticHeading: Float? = null,
     trueHeading: Float? = null,

@@ -1,5 +1,4 @@
 buildscript {
-    ext.kotlin_version = "1.9.25"
     ext.jacocoVersion = '0.8.7'
     repositories {
         google()
@@ -10,16 +9,16 @@ buildscript {
     }
     dependencies {
         if (System.getenv("SHOULD_PUBLISH") == "true") {
-            classpath("io.github.gradle-nexus:publish-plugin:1.1.0")
+            classpath("io.github.gradle-nexus:publish-plugin:2.0.0")
         }
-        classpath 'com.android.tools.build:gradle:8.13.0'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.android.tools.build:gradle:9.2.1'
+        classpath 'org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.2.10'
         classpath "org.jacoco:org.jacoco.core:$jacocoVersion"
     }
 }
 
 plugins {
-    id "org.sonarqube" version "3.5.0.2730"
+    id "org.sonarqube" version "7.6.0.18749"
 }
 
 sonarqube {
@@ -36,22 +35,28 @@ if (System.getenv("SHOULD_PUBLISH") == "true") {
 }
 
 apply plugin: "com.android.library"
-apply plugin: "kotlin-android"
 apply plugin: "jacoco"
+apply plugin: "org.jetbrains.kotlin.plugin.compose"
 
 android {
     namespace "io.ionic.libs.iongeolocationlib"
-    compileSdk 36
+    compileSdk 37
+
+    buildFeatures {
+        compose true
+    }
 
     defaultConfig {
-        minSdk 24
-        targetSdk 36
+        minSdk 26
+        targetSdk 37
         versionCode 5
         versionName "2.2.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary true
+
+        // androidx.core.locationbutton needs compileSdk 37 (MABS 13 / Capacitor 9), so consumers must too.
+        aarMetadata {
+            minCompileSdk = 37
         }
     }
 
@@ -64,9 +69,6 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = '17'
     }
 
     task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {
@@ -98,8 +100,8 @@ android {
         unitTests.returnDefaultValues = true
     }
 
-    lintOptions {
-        abortOnError false
+    lint {
+        abortOnError = false
     }
 
     publishing {
@@ -110,10 +112,21 @@ android {
 repositories {
     google()
     mavenCentral()
+    flatDir { dirs 'libs' }
 }
 
 dependencies {
     implementation 'androidx.core:core-ktx:1.16.0'
+    // Using compose androidx library instead of views because Views has UI issues
+    // See https://issuetracker.google.com/issues/567953859
+    implementation 'androidx.core.locationbutton:locationbutton-compose:1.0.0-alpha01'
+    implementation 'androidx.compose.foundation:foundation:1.12.1'
+    if (System.getenv("SHOULD_PUBLISH") == "true") {
+        api 'io.ionic.libs:ionnativeislands-android:1.0.0'
+    } else {
+        compileOnly(name: 'ionnativeislands-android-release', ext: 'aar')
+        testImplementation(name: 'ionnativeislands-android-release', ext: 'aar')
+    }
 
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
