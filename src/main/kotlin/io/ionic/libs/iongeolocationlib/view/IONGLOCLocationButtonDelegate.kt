@@ -34,6 +34,7 @@ internal class IONGLOCLocationButtonDelegate(
     private var resumed = false
     private var destroyed = false
     private var pendingPermissionResult: Boolean? = null
+    private var pendingFetchResult: Result<IONGLOCLocationResult>? = null
     private var currentFetchJob: Job? = null
 
     var timeout = 10_000L
@@ -47,11 +48,14 @@ internal class IONGLOCLocationButtonDelegate(
             pendingPermissionResult = null
             deliverPermissionResult(granted)
         }
+        pendingFetchResult?.let { result ->
+            pendingFetchResult = null
+            deliverFetchResult(result)
+        }
     }
 
     fun onPause() {
         resumed = false
-        cancelLocationFetch()
     }
 
     fun onDestroy() {
@@ -93,27 +97,28 @@ internal class IONGLOCLocationButtonDelegate(
             val options = IONGLOCLocationOptions(
                 timeout = timeout,
                 maximumAge = maximumAge,
-                enableHighAccuracy = true, // fixed — see Decisions
+                enableHighAccuracy = true, // fixed: a precise-location button should not fetch imprecisely
                 enableLocationManagerFallback = enableLocationManagerFallback,
             )
             val result = controller.getCurrentPosition(activity, options)
-            if (destroyed || !resumed) return@launch
-            result.fold(
-                onSuccess = { emitPosition(it) },
-                onFailure = { emitError(it.message ?: "location fetch failed", errorCodeMapper?.invoke(it)) },
-            )
+            if (destroyed) return@launch
+            if (resumed) deliverFetchResult(result) else pendingFetchResult = result
         }
         currentFetchJob = job
         job.invokeOnCompletion { if (currentFetchJob === job) currentFetchJob = null }
         job.start()
     }
 
-    private fun cancelOutstandingWork() {
-        pendingPermissionResult = null
-        cancelLocationFetch()
+    private fun deliverFetchResult(result: Result<IONGLOCLocationResult>) {
+        result.fold(
+            onSuccess = { emitPosition(it) },
+            onFailure = { emitError(it.message ?: "location fetch failed", errorCodeMapper?.invoke(it)) },
+        )
     }
 
-    private fun cancelLocationFetch() {
+    private fun cancelOutstandingWork() {
+        pendingPermissionResult = null
+        pendingFetchResult = null
         currentFetchJob?.cancel()
         currentFetchJob = null
     }

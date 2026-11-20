@@ -28,7 +28,7 @@ import io.ionic.libs.ionnativeislandslib.NativeIsland
 import io.ionic.libs.ionnativeislandslib.NativeIslandEventEmitting
 import io.ionic.libs.ionnativeislandslib.NativeIslandSurfaceClip
 
-class IONGLOCLocationButtonIsland(
+internal class IONGLOCLocationButtonIsland(
     private val activity: Activity,
     controller: IONGLOCController,
     errorCodeMapper: ((Throwable) -> String?)? = null,
@@ -65,7 +65,7 @@ class IONGLOCLocationButtonIsland(
 
     private var config by mutableStateOf(ButtonConfig())
     private var visibleRect: Rect? = null
-    private var clipObserver: ViewTreeObserver.OnGlobalLayoutListener? = null
+    private val clipListener = ViewTreeObserver.OnGlobalLayoutListener { applySurfaceClip() }
 
     private val button = ComposeView(activity).apply {
         setContent {
@@ -98,7 +98,13 @@ class IONGLOCLocationButtonIsland(
 
         override fun onAttachedToWindow() {
             super.onAttachedToWindow()
+            viewTreeObserver.addOnGlobalLayoutListener(clipListener)
             attachButtonWhenReady()
+        }
+
+        override fun onDetachedFromWindow() {
+            viewTreeObserver.removeOnGlobalLayoutListener(clipListener)
+            super.onDetachedFromWindow()
         }
 
         override fun onVisibilityAggregated(isVisible: Boolean) {
@@ -141,9 +147,6 @@ class IONGLOCLocationButtonIsland(
                             LayoutParams.MATCH_PARENT,
                         ),
                     )
-                    // The SurfaceView is created by the composition, after the first layout.
-                    clipObserver = ViewTreeObserver.OnGlobalLayoutListener { applySurfaceClip() }
-                        .also { button.viewTreeObserver.addOnGlobalLayoutListener(it) }
                     applySurfaceClip()
                 }
             }
@@ -174,10 +177,6 @@ class IONGLOCLocationButtonIsland(
 
     override fun onDestroy() {
         delegate.onDestroy()
-        clipObserver?.let { observer ->
-            if (button.viewTreeObserver.isAlive) button.viewTreeObserver.removeOnGlobalLayoutListener(observer)
-        }
-        clipObserver = null
         button.disposeComposition()
         buttonHost.removeAllViews()
     }

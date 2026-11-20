@@ -271,12 +271,12 @@ class IONGLOCLocationButtonDelegateTest {
 
     // endregion
 
-    // region lifecycle cancellation
+    // region lifecycle
 
     @Test
-    fun `given a fetch is suspended mid-flight, onPause cancels it and no position event is ever emitted`() {
+    fun `given a fetch is suspended mid-flight, onPause does not cancel it and its position is delivered on resume`() {
         coEvery { controller.getCurrentPosition(any(), any()) } coAnswers {
-            delay(10_000)
+            delay(10_000) // e.g. waiting for the "turn on location" dialog, which pauses the Activity
             Result.success(sampleResult())
         }
 
@@ -284,7 +284,49 @@ class IONGLOCLocationButtonDelegateTest {
         testScheduler.runCurrent() // reach the suspension point inside the launched coroutine
 
         delegate.onPause()
-        testScheduler.advanceUntilIdle() // let virtual time pass the delay if it were still alive
+        testScheduler.advanceUntilIdle() // the fetch completes while paused
+
+        assertTrue(events.none { it.first == "position" })
+
+        delegate.onResume()
+
+        assertEquals(1, events.count { it.first == "position" })
+        coVerify(exactly = 1) { controller.getCurrentPosition(any(), any()) }
+    }
+
+    @Test
+    fun `given a fetch fails while the island is paused, buttonError is delivered on resume`() {
+        coEvery { controller.getCurrentPosition(any(), any()) } coAnswers {
+            delay(10_000)
+            Result.failure(IONGLOCException.IONGLOCLocationRetrievalTimeoutException("timed out"))
+        }
+
+        delegate.permissionGranted(true)
+        testScheduler.runCurrent()
+        delegate.onPause()
+        testScheduler.advanceUntilIdle()
+
+        assertTrue(events.none { it.first == "buttonError" })
+
+        delegate.onResume()
+
+        assertEquals(1, events.count { it.first == "buttonError" })
+    }
+
+    @Test
+    fun `given a fetch finished while paused, onDestroy drops its result and a later onResume does not deliver it`() {
+        coEvery { controller.getCurrentPosition(any(), any()) } coAnswers {
+            delay(10_000)
+            Result.success(sampleResult())
+        }
+
+        delegate.permissionGranted(true)
+        testScheduler.runCurrent()
+        delegate.onPause()
+        testScheduler.advanceUntilIdle()
+
+        delegate.onDestroy()
+        delegate.onResume()
 
         assertTrue(events.none { it.first == "position" })
     }

@@ -20,14 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - BREAKING CHANGE: The library is now a single AAR that includes the Location Button, built with `compileSdk` 37. Consumers must build with `compileSdk` 37 or higher (the AAR declares `minCompileSdk = 37`). Builds on `compileSdk` 36 (MABS 12) can no longer use this library, including for the existing geolocation methods.
 - BREAKING CHANGE: The minimum supported Android version is now API 26 (`minSdk` 26, previously 24).
 - BREAKING CHANGE: Consuming builds now need Android Gradle Plugin 9.1 or higher and Kotlin 2.1 or higher, as required by `androidx.core.locationbutton`. The library is built with Kotlin 2.2 and depends on `kotlin-stdlib` 2.2.x.
-- Feature: Depend on `androidx.core.locationbutton:locationbutton:1.0.0-alpha01`, which is still an alpha release (the latest published), so its API may change incompatibly. The `android.permission.USE_LOCATION_BUTTON` permission is now added to the merged manifest.
+- Feature: Depend on `androidx.core.locationbutton:locationbutton-compose:1.0.0-alpha01`, which is still an alpha release (the latest published), so its API may change incompatibly. The `android.permission.USE_LOCATION_BUTTON` permission is now added to the merged manifest.
 - Chore: Update build tooling (Gradle 9.4.1, AGP 9.2.1, nexus publish plugin 2.0.0, SonarQube plugin 7.6.0). The publishing script no longer uses the `-b` Gradle flag, which Gradle 9 removed.
 
 ### 2026-11-18
 
-- Fix: The Location Button is now the Jetpack Compose `LocationButton` (`androidx.core.locationbutton:locationbutton-compose:1.0.0-alpha01`, still an alpha release), hosted in a `ComposeView`. The Views `LocationButton` could show Google's compat button next to the system button on Android 17 ([issue tracker](https://issuetracker.google.com/issues/567953859)). The `androidx.core.locationbutton:locationbutton` dependency is no longer declared directly.
-- BREAKING CHANGE: The host Activity must be a `ComponentActivity` (`AppCompatActivity` is one), as the Compose button finds its Activity and permission launcher through it. `IONGLOCLocationButtonIsland` no longer takes a `Context` in its constructor.
-- Fix: The Location Button's layout listener is now removed when the island is destroyed.
+- Feature: The Location Button is the Jetpack Compose `LocationButton` (`androidx.core.locationbutton:locationbutton-compose:1.0.0-alpha01`, still an alpha release), hosted in a `ComposeView`, instead of the Views `LocationButton`, which can show Google's compat button next to the system button on Android 17 ([issue tracker](https://issuetracker.google.com/issues/567953859)).
+- BREAKING CHANGE: The host Activity must be a `ComponentActivity` (`AppCompatActivity` is one), as the Compose button finds its Activity and permission launcher through it.
 
 ## [2.2.2]
 
