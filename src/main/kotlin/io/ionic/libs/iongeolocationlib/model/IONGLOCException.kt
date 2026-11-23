@@ -23,4 +23,7 @@ sealed class IONGLOCException(message: String, cause: Throwable?) : Exception(me
     class IONGLOCLocationAndNetworkDisabledException(
         message: String, cause: Throwable? = null
     ) : IONGLOCException(message, cause)
+    class IONGLOCLocationButtonException(
+        message: String, cause: Throwable? = null
+    ) : IONGLOCException(message, cause)
 }
