@@ -6,17 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### 2026-07-21
+### 2026-11-18
 
-- Add a Native Islands Location Button component with grant, position, and error
-  events.
-  
-## [3.0.0]
-
-### 2026-10-30
-
-- **Breaking:** minSdk raised from 23 to 24.
-- Chore: Update dependencies and build tooling (Gradle 8.14.3, AGP 8.13.0, minSdk 24, androidx libraries, coroutines 1.9.0, test libraries).
+- Feature: The Location Button is the Jetpack Compose `LocationButton` (`androidx.core.locationbutton:locationbutton-compose:1.0.0-alpha01`, still an alpha release), hosted in a `ComposeView`, instead of the Views `LocationButton`, which can show Google's compat button next to the system button on Android 17 ([issue tracker](https://issuetracker.google.com/issues/567953859)).
+- BREAKING CHANGE: The host Activity must be a `ComponentActivity` (`AppCompatActivity` is one), as the Compose button finds its Activity and permission launcher through it.
 
 ### 2026-11-16
 
@@ -26,10 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Feature: Depend on `androidx.core.locationbutton:locationbutton-compose:1.0.0-alpha01`, which is still an alpha release (the latest published), so its API may change incompatibly. The `android.permission.USE_LOCATION_BUTTON` permission is now added to the merged manifest.
 - Chore: Update build tooling (Gradle 9.4.1, AGP 9.2.1, nexus publish plugin 2.0.0, SonarQube plugin 7.6.0). The publishing script no longer uses the `-b` Gradle flag, which Gradle 9 removed.
 
-### 2026-11-18
+### 2026-07-21
 
-- Feature: The Location Button is the Jetpack Compose `LocationButton` (`androidx.core.locationbutton:locationbutton-compose:1.0.0-alpha01`, still an alpha release), hosted in a `ComposeView`, instead of the Views `LocationButton`, which can show Google's compat button next to the system button on Android 17 ([issue tracker](https://issuetracker.google.com/issues/567953859)).
-- BREAKING CHANGE: The host Activity must be a `ComponentActivity` (`AppCompatActivity` is one), as the Compose button finds its Activity and permission launcher through it.
+- Feature: Add a Native Islands Location Button component with grant, position, and error events.
+
+## [3.0.0]
+
+### 2026-10-30
+
+- **Breaking:** minSdk raised from 23 to 24.
+- Chore: Update dependencies and build tooling (Gradle 8.14.3, AGP 8.13.0, minSdk 24, androidx libraries, coroutines 1.9.0, test libraries).
 
 ## [2.2.2]
 
