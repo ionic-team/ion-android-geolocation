@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0]
+
 ### 2026-11-24
 
 - Chore: Depend on `io.ionic.libs:ionnativeislands-android:1.0.0` from Maven Central instead of a bundled AAR.
