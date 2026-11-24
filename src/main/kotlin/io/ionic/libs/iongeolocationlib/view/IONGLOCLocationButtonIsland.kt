@@ -2,12 +2,8 @@ package io.ionic.libs.iongeolocationlib.view
 
 import android.app.Activity
 import android.graphics.Color
-import android.graphics.Rect
 import android.os.Build
-import android.view.SurfaceView
 import android.view.View
-import android.view.ViewGroup
-import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,14 +22,13 @@ import io.ionic.libs.iongeolocationlib.model.IONGLOCException
 import io.ionic.libs.iongeolocationlib.model.IONGLOCLocationResult
 import io.ionic.libs.ionnativeislandslib.NativeIsland
 import io.ionic.libs.ionnativeislandslib.NativeIslandEventEmitting
-import io.ionic.libs.ionnativeislandslib.NativeIslandSurfaceClip
 
 internal class IONGLOCLocationButtonIsland(
     private val activity: Activity,
     controller: IONGLOCController,
     errorCodeMapper: ((Throwable) -> String?)? = null,
     positionMapper: ((IONGLOCLocationResult) -> Map<String, Any?>)? = null,
-) : NativeIsland, NativeIslandEventEmitting, NativeIslandSurfaceClip {
+) : NativeIsland, NativeIslandEventEmitting {
 
     companion object {
         @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.CINNAMON_BUN)
@@ -64,8 +59,6 @@ internal class IONGLOCLocationButtonIsland(
     )
 
     private var config by mutableStateOf(ButtonConfig())
-    private var visibleRect: Rect? = null
-    private val clipListener = ViewTreeObserver.OnGlobalLayoutListener { applySurfaceClip() }
 
     private val button = ComposeView(activity).apply {
         setContent {
@@ -98,13 +91,7 @@ internal class IONGLOCLocationButtonIsland(
 
         override fun onAttachedToWindow() {
             super.onAttachedToWindow()
-            viewTreeObserver.addOnGlobalLayoutListener(clipListener)
             attachButtonWhenReady()
-        }
-
-        override fun onDetachedFromWindow() {
-            viewTreeObserver.removeOnGlobalLayoutListener(clipListener)
-            super.onDetachedFromWindow()
         }
 
         override fun onVisibilityAggregated(isVisible: Boolean) {
@@ -147,25 +134,12 @@ internal class IONGLOCLocationButtonIsland(
                             LayoutParams.MATCH_PARENT,
                         ),
                     )
-                    applySurfaceClip()
                 }
             }
         }
     }
 
     override val view: View get() = buttonHost
-
-    override fun setVisibleRect(rect: Rect?) {
-        if (visibleRect == rect) return
-        visibleRect = rect?.let(::Rect)
-        applySurfaceClip()
-    }
-
-    private fun applySurfaceClip() {
-        if (button.clipBounds != visibleRect) button.clipBounds = visibleRect
-        val surface = button.findSurfaceView()
-        if (surface != null && surface.clipBounds != visibleRect) surface.clipBounds = visibleRect
-    }
 
     override fun create(properties: Map<String, Any?>) = applyConfig(properties)
 
@@ -234,14 +208,6 @@ internal class IONGLOCLocationButtonIsland(
 
     private val minimumTouchTarget: Int
         get() = (48f * button.resources.displayMetrics.density).toInt()
-
-    private fun View.findSurfaceView(): SurfaceView? {
-        if (this is SurfaceView) return this
-        if (this is ViewGroup) {
-            for (i in 0 until childCount) getChildAt(i).findSurfaceView()?.let { return it }
-        }
-        return null
-    }
 }
 
 private val LOCATION_BUTTON_TEXT_TYPES = mapOf(
