@@ -50,7 +50,7 @@ android {
         minSdk 26
         targetSdk 37
         versionCode 5
-        versionName "3.0.0"
+        versionName "4.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -112,7 +112,6 @@ android {
 repositories {
     google()
     mavenCentral()
-    flatDir { dirs 'libs' }
 }
 
 dependencies {
@@ -121,12 +120,7 @@ dependencies {
     // See https://issuetracker.google.com/issues/567953859
     implementation 'androidx.core.locationbutton:locationbutton-compose:1.0.0-alpha01'
     implementation 'androidx.compose.foundation:foundation:1.12.1'
-    if (System.getenv("SHOULD_PUBLISH") == "true") {
-        api 'io.ionic.libs:ionnativeislands-android:1.0.0'
-    } else {
-        compileOnly(name: 'ionnativeislands-android-release', ext: 'aar')
-        testImplementation(name: 'ionnativeislands-android-release', ext: 'aar')
-    }
+    api 'io.ionic.libs:ionnativeislands-android:1.0.0'
 
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
