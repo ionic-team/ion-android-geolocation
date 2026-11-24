@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-24
+
+- Chore: Depend on `io.ionic.libs:ionnativeislands-android:1.0.0` from Maven Central instead of a bundled AAR.
+
 ### 2026-11-18
 
 - Feature: The Location Button is the Jetpack Compose `LocationButton` (`androidx.core.locationbutton:locationbutton-compose:1.0.0-alpha01`, still an alpha release), hosted in a `ComposeView`, instead of the Views `LocationButton`, which can show Google's compat button next to the system button on Android 17 ([issue tracker](https://issuetracker.google.com/issues/567953859)).
